@@ -70,7 +70,7 @@ pub fn activate_model(app: &AppHandle, id: &str) -> anyhow::Result<()> {
         anyhow::bail!("модель ещё не скачана");
     }
     let dir = models::model_root_dir(&state.models_dir, &entry);
-    let inner = Recognizer::from_model_dir(&dir, entry.kind(), 2)?;
+    let inner = Recognizer::from_entry(&dir, &entry, 2)?;
     *state.recognizer.lock().unwrap() = Some(ActiveRecognizer { model_id: id.to_string(), inner });
     {
         let conn = state.db.0.lock().unwrap();
@@ -95,7 +95,7 @@ fn load_active_recognizer(settings: &AppSettings, models_dir: &PathBuf) -> Optio
         return None;
     }
     let dir = models::model_root_dir(models_dir, &entry);
-    match Recognizer::from_model_dir(&dir, entry.kind(), 2) {
+    match Recognizer::from_entry(&dir, &entry, 2) {
         Ok(inner) => Some(ActiveRecognizer {
             model_id: entry.id().to_string(),
             inner,

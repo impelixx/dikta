@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 pub enum ModelKind {
     Ctc,
     Transducer,
+    Whisper,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -24,6 +25,11 @@ pub struct ModelInfo {
     /// RTF = время декода / длительность аудио, меньше = быстрее.
     pub measured_rtf: f32,
     pub measured_load_ms: u32,
+    /// Только для Whisper: файлы в архиве именуются с префиксом размера
+    /// модели (например "small-encoder.int8.onnx"), и язык распознавания
+    /// нужно указать явно — Whisper многоязычный, а не заточен под русский.
+    pub whisper_file_prefix: Option<&'static str>,
+    pub whisper_language: Option<&'static str>,
 }
 
 /// Модель, добавленная пользователем по произвольному репозиторию Hugging Face.
@@ -94,6 +100,8 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             punctuation: false,
             measured_rtf: 0.085,
             measured_load_ms: 920,
+            whisper_file_prefix: None,
+            whisper_language: None,
         },
         ModelInfo {
             id: "giga-ctc-punct-v3",
@@ -106,6 +114,8 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             punctuation: true,
             measured_rtf: 0.084,
             measured_load_ms: 935,
+            whisper_file_prefix: None,
+            whisper_language: None,
         },
         ModelInfo {
             id: "giga-transducer-v3",
@@ -118,6 +128,8 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             punctuation: false,
             measured_rtf: 0.086,
             measured_load_ms: 2300,
+            whisper_file_prefix: None,
+            whisper_language: None,
         },
         ModelInfo {
             id: "giga-transducer-punct-v3",
@@ -130,6 +142,36 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             punctuation: true,
             measured_rtf: 0.082,
             measured_load_ms: 1990,
+            whisper_file_prefix: None,
+            whisper_language: None,
+        },
+        ModelInfo {
+            id: "whisper-base",
+            name: "Whisper base (OpenAI)",
+            description: "Многоязычная модель OpenAI — на русском заметно чаще ошибается в деталях, чем GigaAM, но одна модель понимает ~99 языков без переключения.",
+            kind: ModelKind::Whisper,
+            archive_stem: "sherpa-onnx-whisper-base",
+            size_mb: 165,
+            languages: &["ru", "en", "+97 других"],
+            punctuation: true,
+            measured_rtf: 0.086,
+            measured_load_ms: 660,
+            whisper_file_prefix: Some("base"),
+            whisper_language: Some("ru"),
+        },
+        ModelInfo {
+            id: "whisper-small",
+            name: "Whisper small (OpenAI)",
+            description: "Та же многоязычная модель OpenAI, крупнее и точнее base на русском, но втрое медленнее и почти 400МБ на диске.",
+            kind: ModelKind::Whisper,
+            archive_stem: "sherpa-onnx-whisper-small",
+            size_mb: 380,
+            languages: &["ru", "en", "+97 других"],
+            punctuation: true,
+            measured_rtf: 0.277,
+            measured_load_ms: 1510,
+            whisper_file_prefix: Some("small"),
+            whisper_language: Some("ru"),
         },
     ]
 }
@@ -164,6 +206,15 @@ pub fn is_downloaded(base: &Path, entry: &ModelEntry) -> bool {
                 && dir.join("decoder.onnx").exists()
                 && dir.join("joiner.onnx").exists()
                 && dir.join("tokens.txt").exists()
+        }
+        ModelKind::Whisper => {
+            let prefix = match entry {
+                ModelEntry::Builtin(info) => info.whisper_file_prefix.unwrap_or("model"),
+                ModelEntry::Custom(_) => "model",
+            };
+            dir.join(format!("{prefix}-encoder.int8.onnx")).exists()
+                && dir.join(format!("{prefix}-decoder.int8.onnx")).exists()
+                && dir.join(format!("{prefix}-tokens.txt")).exists()
         }
     }
 }
@@ -213,6 +264,18 @@ fn download_builtin(info: &ModelInfo, base: &Path, mut on_progress: impl FnMut(u
     if !is_downloaded(base, &entry) {
         anyhow::bail!("после распаковки не найдены ожидаемые файлы модели");
     }
+
+    // Архивы Whisper содержат и fp32, и int8 версии encoder/decoder, а мы
+    // всегда используем только int8 — удаляем неиспользуемые fp32-файлы
+    // (для whisper-small это лишний ~1ГБ на диске просто так).
+    if info.kind == ModelKind::Whisper {
+        if let Some(prefix) = info.whisper_file_prefix {
+            let dir = model_root_dir(base, &entry);
+            std::fs::remove_file(dir.join(format!("{prefix}-encoder.onnx"))).ok();
+            std::fs::remove_file(dir.join(format!("{prefix}-decoder.onnx"))).ok();
+        }
+    }
+
     Ok(())
 }
 

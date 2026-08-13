@@ -1,4 +1,4 @@
-use crate::models::ModelKind;
+use crate::models::{ModelEntry, ModelKind};
 use anyhow::{bail, Result};
 use sherpa_rs::sherpa_rs_sys;
 use std::ffi::{CStr, CString};
@@ -29,6 +29,12 @@ pub struct TransducerPaths<'a> {
     pub encoder: &'a str,
     pub decoder: &'a str,
     pub joiner: &'a str,
+    pub tokens: &'a str,
+}
+
+pub struct WhisperPaths<'a> {
+    pub encoder: &'a str,
+    pub decoder: &'a str,
     pub tokens: &'a str,
 }
 
@@ -67,7 +73,7 @@ impl Recognizer {
             }
         };
 
-        Self::create(model_config, decoding_c, vec![model_c, tokens_c, provider_c])
+        Self::create(model_config, decoding_c, vec![model_c, tokens_c, provider_c], 64)
     }
 
     pub fn new_transducer(paths: TransducerPaths, num_threads: i32) -> Result<Self> {
@@ -112,6 +118,56 @@ impl Recognizer {
             model_config,
             decoding_c,
             vec![encoder_c, decoder_c, joiner_c, tokens_c, provider_c],
+            64,
+        )
+    }
+
+    pub fn new_whisper(paths: WhisperPaths, language: &str, num_threads: i32) -> Result<Self> {
+        let encoder_c = cstr(paths.encoder);
+        let decoder_c = cstr(paths.decoder);
+        let tokens_c = cstr(paths.tokens);
+        let provider_c = cstr("cpu");
+        let decoding_c = cstr("greedy_search");
+        let language_c = cstr(language);
+        let task_c = cstr("transcribe");
+
+        let whisper_config = sherpa_rs_sys::SherpaOnnxOfflineWhisperModelConfig {
+            encoder: encoder_c.as_ptr(),
+            decoder: decoder_c.as_ptr(),
+            language: language_c.as_ptr(),
+            task: task_c.as_ptr(),
+            tail_paddings: 0,
+        };
+
+        let model_config = unsafe {
+            sherpa_rs_sys::SherpaOnnxOfflineModelConfig {
+                tokens: tokens_c.as_ptr(),
+                num_threads,
+                debug: 0,
+                provider: provider_c.as_ptr(),
+                whisper: whisper_config,
+                nemo_ctc: mem::zeroed(),
+                transducer: mem::zeroed(),
+                paraformer: mem::zeroed(),
+                tdnn: mem::zeroed(),
+                model_type: std::ptr::null(),
+                modeling_unit: std::ptr::null(),
+                bpe_vocab: std::ptr::null(),
+                telespeech_ctc: std::ptr::null(),
+                sense_voice: mem::zeroed(),
+                moonshine: mem::zeroed(),
+                fire_red_asr: mem::zeroed(),
+                dolphin: mem::zeroed(),
+                zipformer_ctc: mem::zeroed(),
+                canary: mem::zeroed(),
+            }
+        };
+
+        Self::create(
+            model_config,
+            decoding_c,
+            vec![encoder_c, decoder_c, tokens_c, provider_c, language_c, task_c],
+            80,
         )
     }
 
@@ -119,10 +175,11 @@ impl Recognizer {
         model_config: sherpa_rs_sys::SherpaOnnxOfflineModelConfig,
         decoding_c: CString,
         mut keep_alive: Vec<CString>,
+        feature_dim: i32,
     ) -> Result<Self> {
         let feat_config = sherpa_rs_sys::SherpaOnnxFeatureConfig {
             sample_rate: 16000,
-            feature_dim: 64,
+            feature_dim,
         };
 
         let recognizer_config = unsafe {
@@ -183,7 +240,48 @@ impl Recognizer {
                     num_threads,
                 )
             }
+            // Whisper грузится через from_whisper_dir (нужен префикс имени файлов
+            // и язык) — сюда попадать не должен, но не паникуем на всякий случай.
+            ModelKind::Whisper => {
+                bail!("для Whisper используйте Recognizer::from_whisper_dir")
+            }
         }
+    }
+
+    /// Собирает распознаватель по элементу каталога — сама решает, обычный
+    /// ли это путь (CTC/Transducer) или Whisper (нужны префикс файлов и язык).
+    pub fn from_entry(dir: &std::path::Path, entry: &ModelEntry, num_threads: i32) -> Result<Self> {
+        match entry {
+            ModelEntry::Builtin(info) if info.kind == ModelKind::Whisper => {
+                let prefix = info.whisper_file_prefix.unwrap_or("model");
+                let language = info.whisper_language.unwrap_or("ru");
+                Self::from_whisper_dir(dir, prefix, language, num_threads)
+            }
+            _ => Self::from_model_dir(dir, entry.kind(), num_threads),
+        }
+    }
+
+    /// Whisper-архивы sherpa-onnx именуют файлы с префиксом размера модели
+    /// (например "small-encoder.int8.onnx"), поэтому им нужен отдельный путь
+    /// загрузки — обычный from_model_dir рассчитан на фиксированные имена.
+    pub fn from_whisper_dir(
+        dir: &std::path::Path,
+        file_prefix: &str,
+        language: &str,
+        num_threads: i32,
+    ) -> Result<Self> {
+        let encoder = dir.join(format!("{file_prefix}-encoder.int8.onnx"));
+        let decoder = dir.join(format!("{file_prefix}-decoder.int8.onnx"));
+        let tokens = dir.join(format!("{file_prefix}-tokens.txt"));
+        Self::new_whisper(
+            WhisperPaths {
+                encoder: encoder.to_str().expect("некорректный путь к encoder"),
+                decoder: decoder.to_str().expect("некорректный путь к decoder"),
+                tokens: tokens.to_str().expect("некорректный путь к tokens"),
+            },
+            language,
+            num_threads,
+        )
     }
 
     /// Распознаёт моно-сэмплы f32 в диапазоне [-1.0, 1.0] на 16kHz.

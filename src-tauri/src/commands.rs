@@ -129,6 +129,9 @@ pub fn add_custom_model(
             joiner: joiner.ok_or("не указан joiner")?,
             tokens,
         },
+        ModelKind::Whisper => {
+            return Err("Whisper пока поддерживается только во встроенном каталоге, не как своя HF-модель".to_string())
+        }
     };
     let id = format!("custom:{}", repo_id.replace('/', "_"));
     let custom = CustomModel { id: id.clone(), name: repo_id.clone(), repo_id, kind, files };

@@ -54,7 +54,7 @@ interface ModelListItem {
   id: string;
   name: string;
   description?: string;
-  kind: "Ctc" | "Transducer";
+  kind: "Ctc" | "Transducer" | "Whisper";
   size_mb?: number;
   repo_id?: string;
   languages?: string[];
@@ -262,7 +262,7 @@ async function loadModels() {
     el.className = "model-item" + (m.active ? " active" : "");
     const sizeLabel = m.size_mb ? `${m.size_mb}МБ` : "";
     const desc = m.source === "Custom" ? `HF: ${m.repo_id}` : m.description ?? "";
-    const kindLabel = m.kind === "Ctc" ? "CTC" : "Transducer";
+    const kindLabel = m.kind === "Ctc" ? "CTC" : m.kind === "Transducer" ? "Transducer" : "Whisper";
 
     const badges: string[] = [`<span class="badge">${kindLabel}</span>`];
     if (m.languages?.length) {
@@ -275,11 +275,11 @@ async function loadModels() {
           : `<span class="badge">без пунктуации</span>`
       );
     }
-    if (m.measured_rtf != null) {
+    if (m.measured_rtf) {
       const speedFactor = (1 / m.measured_rtf).toFixed(0);
       badges.push(`<span class="badge" title="Замерено локально, на вашей машине может отличаться">⚡ ×${speedFactor} реального времени</span>`);
     }
-    if (m.measured_load_ms != null) {
+    if (m.measured_load_ms) {
       badges.push(`<span class="badge">загрузка ~${(m.measured_load_ms / 1000).toFixed(1)}с</span>`);
     }
 

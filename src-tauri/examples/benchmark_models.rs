@@ -31,14 +31,18 @@ fn main() {
             continue;
         }
         let dir = models::model_root_dir(&base, &entry);
-        let wav_path = dir.join("test_wavs").join("example.wav");
-        if !wav_path.exists() {
-            println!("=== {} === пропущено (нет test_wavs/example.wav)\n", info.name);
+        let wav_dir = dir.join("test_wavs");
+        let wav_path = ["example.wav", "0.wav", "1.wav"]
+            .iter()
+            .map(|f| wav_dir.join(f))
+            .find(|p| p.exists());
+        let Some(wav_path) = wav_path else {
+            println!("=== {} === пропущено (нет тестового WAV)\n", info.name);
             continue;
-        }
+        };
 
         let load_start = Instant::now();
-        let recognizer = Recognizer::from_model_dir(&dir, info.kind, 2).expect("recognizer init failed");
+        let recognizer = Recognizer::from_entry(&dir, &entry, 2).expect("recognizer init failed");
         let load_ms = load_start.elapsed().as_millis();
 
         let (samples, duration_sec) = read_wav(&wav_path);
