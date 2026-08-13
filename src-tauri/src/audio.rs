@@ -179,6 +179,16 @@ impl AudioEngine {
         resample_linear(&mono, handle.sample_rate, 16000)
     }
 
+    /// Копия накопленных на данный момент сэмплов (16kHz mono), без остановки
+    /// записи — для "живых субтитров": периодически передекодируем то, что
+    /// уже наговорено, без отдельной streaming-модели.
+    pub fn snapshot(&self) -> Vec<f32> {
+        let raw = self.buffer.lock().unwrap().samples.clone();
+        let handle = self.handle.lock().unwrap();
+        let mono = downmix_to_mono(&raw, handle.channels);
+        resample_linear(&mono, handle.sample_rate, 16000)
+    }
+
     /// RMS громкости последнего небольшого хвоста буфера — для живой волны в UI.
     /// Не претендует на точность, только на "живость" индикатора.
     pub fn recent_level(&self) -> f32 {

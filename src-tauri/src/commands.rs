@@ -2,7 +2,7 @@ use crate::audio;
 use crate::db::{self, DayStat, OverallStats, Recording};
 use crate::models::{self, CustomFiles, CustomModel, ModelKind};
 use crate::settings::{self, AppSettings};
-use crate::state::{ActiveRecognizer, AppState};
+use crate::state::AppState;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
@@ -87,6 +87,7 @@ pub fn download_model(app: AppHandle, state: State<AppState>, id: String) -> Res
     match result {
         Ok(()) => {
             let _ = app.emit("model-download-done", id);
+            let _ = crate::rebuild_tray_menu(&app);
             Ok(())
         }
         Err(e) => {
@@ -97,21 +98,8 @@ pub fn download_model(app: AppHandle, state: State<AppState>, id: String) -> Res
 }
 
 #[tauri::command]
-pub fn set_active_model(state: State<AppState>, id: String) -> Result<(), String> {
-    let settings = state.settings.lock().unwrap().clone();
-    let entry = models::find(&id, &settings.custom_models).ok_or("модель не найдена")?;
-    if !models::is_downloaded(&state.models_dir, &entry) {
-        return Err("модель ещё не скачана".to_string());
-    }
-    let dir = models::model_root_dir(&state.models_dir, &entry);
-    let inner = crate::asr::Recognizer::from_model_dir(&dir, entry.kind(), 2).map_err(|e| e.to_string())?;
-    *state.recognizer.lock().unwrap() = Some(ActiveRecognizer { model_id: id.clone(), inner });
-    {
-        let conn = state.db.0.lock().unwrap();
-        AppSettings::save_field(&conn, "active_model_id", &id).map_err(|e| e.to_string())?;
-    }
-    state.settings.lock().unwrap().active_model_id = id;
-    Ok(())
+pub fn set_active_model(app: AppHandle, id: String) -> Result<(), String> {
+    crate::activate_model(&app, &id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -155,12 +143,15 @@ pub fn add_custom_model(
 }
 
 #[tauri::command]
-pub fn remove_custom_model(state: State<AppState>, id: String) -> Result<(), String> {
-    let mut settings = state.settings.lock().unwrap();
-    settings.custom_models.retain(|m| m.id != id);
-    let json = serde_json::to_string(&settings.custom_models).map_err(|e| e.to_string())?;
-    let conn = state.db.0.lock().unwrap();
-    AppSettings::save_field(&conn, "custom_models", &json).map_err(|e| e.to_string())?;
+pub fn remove_custom_model(app: AppHandle, state: State<AppState>, id: String) -> Result<(), String> {
+    {
+        let mut settings = state.settings.lock().unwrap();
+        settings.custom_models.retain(|m| m.id != id);
+        let json = serde_json::to_string(&settings.custom_models).map_err(|e| e.to_string())?;
+        let conn = state.db.0.lock().unwrap();
+        AppSettings::save_field(&conn, "custom_models", &json).map_err(|e| e.to_string())?;
+    }
+    let _ = crate::rebuild_tray_menu(&app);
     Ok(())
 }
 

@@ -57,6 +57,10 @@ interface ModelListItem {
   kind: "Ctc" | "Transducer";
   size_mb?: number;
   repo_id?: string;
+  languages?: string[];
+  punctuation?: boolean;
+  measured_rtf?: number;
+  measured_load_ms?: number;
   downloaded: boolean;
   active: boolean;
 }
@@ -152,6 +156,11 @@ listen<boolean>("recording-started", (event) => {
   recDot.classList.add("live");
   statusHeadline.textContent = "Слушаю…";
   statusHint.textContent = event.payload ? "режим: toggle — нажмите хоткей ещё раз" : "режим: push-to-talk — держите клавишу";
+  lastText.textContent = "…";
+});
+
+listen<string>("partial-transcript", (event) => {
+  lastText.textContent = event.payload;
 });
 
 listen("recording-stopped", () => {
@@ -252,6 +261,25 @@ async function loadModels() {
     const desc = m.source === "Custom" ? `HF: ${m.repo_id}` : m.description ?? "";
     const kindLabel = m.kind === "Ctc" ? "CTC" : "Transducer";
 
+    const badges: string[] = [`<span class="badge">${kindLabel}</span>`];
+    if (m.languages?.length) {
+      badges.push(`<span class="badge">${m.languages.join("/").toUpperCase()}</span>`);
+    }
+    if (m.source === "Builtin") {
+      badges.push(
+        m.punctuation
+          ? `<span class="badge badge-good">пунктуация</span>`
+          : `<span class="badge">без пунктуации</span>`
+      );
+    }
+    if (m.measured_rtf != null) {
+      const speedFactor = (1 / m.measured_rtf).toFixed(0);
+      badges.push(`<span class="badge" title="Замерено локально, на вашей машине может отличаться">⚡ ×${speedFactor} реального времени</span>`);
+    }
+    if (m.measured_load_ms != null) {
+      badges.push(`<span class="badge">загрузка ~${(m.measured_load_ms / 1000).toFixed(1)}с</span>`);
+    }
+
     let actionHtml = "";
     if (m.active) {
       actionHtml = `<span class="small-btn primary">Активна</span>`;
@@ -264,8 +292,9 @@ async function loadModels() {
 
     el.innerHTML = `
       <div class="info">
-        <div class="name">${escapeHtml(m.name)} <span style="font-family:var(--font-mono); font-size:11px; color:var(--ink-soft);">${kindLabel}</span></div>
+        <div class="name">${escapeHtml(m.name)}</div>
         <div class="desc">${escapeHtml(desc)}</div>
+        <div class="badge-row">${badges.join("")}</div>
         <div class="progress-bar" data-progress-for="${m.id}" style="display:none;"><div class="fill"></div></div>
       </div>
       <span class="size">${sizeLabel}</span>

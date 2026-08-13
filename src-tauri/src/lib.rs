@@ -15,9 +15,72 @@ use settings::AppSettings;
 use state::{ActiveRecognizer, AppState};
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
-use tauri::Manager;
+use tauri::{AppHandle, Manager};
+
+pub const TRAY_ID: &str = "main-tray";
+
+/// Перестраивает трей-меню целиком (список моделей меняется динамически —
+/// после скачивания или ручной активации), чтобы модель можно было переключить
+/// в один клик, не открывая окно настроек.
+pub fn rebuild_tray_menu(app: &AppHandle) -> tauri::Result<()> {
+    let Some(tray) = app.tray_by_id(TRAY_ID) else {
+        return Ok(());
+    };
+    let state = app.state::<AppState>();
+    let settings = state.settings.lock().unwrap().clone();
+    let loaded_id = state.recognizer.lock().unwrap().as_ref().map(|r| r.model_id.clone());
+    drop(state);
+
+    let model_items: Vec<CheckMenuItem<tauri::Wry>> = models::full_catalog(&settings.custom_models)
+        .into_iter()
+        .filter(|entry| models::is_downloaded(&app.state::<AppState>().models_dir, entry))
+        .filter_map(|entry| {
+            CheckMenuItem::with_id(
+                app,
+                format!("model:{}", entry.id()),
+                entry.name(),
+                true,
+                loaded_id.as_deref() == Some(entry.id()),
+                None::<&str>,
+            )
+            .ok()
+        })
+        .collect();
+
+    let model_refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> =
+        model_items.iter().map(|i| i as &dyn tauri::menu::IsMenuItem<tauri::Wry>).collect();
+    let models_submenu = Submenu::with_items(app, "Модель", true, &model_refs)?;
+
+    let show = MenuItem::with_id(app, "show", "Открыть Дикту", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show, &models_submenu, &quit])?;
+    tray.set_menu(Some(menu))?;
+    Ok(())
+}
+
+/// Общая логика активации модели — используется и Tauri-командой из настроек,
+/// и кликом по трей-меню.
+pub fn activate_model(app: &AppHandle, id: &str) -> anyhow::Result<()> {
+    let state = app.state::<AppState>();
+    let settings = state.settings.lock().unwrap().clone();
+    let entry = models::find(id, &settings.custom_models).ok_or_else(|| anyhow::anyhow!("модель не найдена"))?;
+    if !models::is_downloaded(&state.models_dir, &entry) {
+        anyhow::bail!("модель ещё не скачана");
+    }
+    let dir = models::model_root_dir(&state.models_dir, &entry);
+    let inner = Recognizer::from_model_dir(&dir, entry.kind(), 2)?;
+    *state.recognizer.lock().unwrap() = Some(ActiveRecognizer { model_id: id.to_string(), inner });
+    {
+        let conn = state.db.0.lock().unwrap();
+        AppSettings::save_field(&conn, "active_model_id", id)?;
+    }
+    state.settings.lock().unwrap().active_model_id = id.to_string();
+    drop(state);
+    let _ = rebuild_tray_menu(app);
+    Ok(())
+}
 
 fn models_base_dir() -> PathBuf {
     let mut dir = dirs::data_dir().unwrap_or_else(std::env::temp_dir);
@@ -42,6 +105,36 @@ fn load_active_recognizer(settings: &AppSettings, models_dir: &PathBuf) -> Optio
             None
         }
     }
+}
+
+/// Плавающее окно-индикатор поверх всех приложений — единственный способ
+/// увидеть статус записи/распознавания, когда фокус в другой программе
+/// (а он почти всегда там, раз хоткей глобальный).
+fn create_overlay_window(app: &tauri::App) -> tauri::Result<()> {
+    let width = 400.0;
+    let height = 64.0;
+    let mut builder = tauri::WebviewWindowBuilder::new(app, "overlay", tauri::WebviewUrl::App("overlay.html".into()))
+        .title("Дикта")
+        .inner_size(width, height)
+        .resizable(false)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .shadow(false)
+        .focused(false)
+        .visible(false);
+
+    if let Ok(Some(monitor)) = app.primary_monitor() {
+        let scale = monitor.scale_factor();
+        let screen_size = monitor.size().to_logical::<f64>(scale);
+        let x = (screen_size.width - width) / 2.0;
+        let y = screen_size.height - height - 90.0;
+        builder = builder.position(x.max(0.0), y.max(0.0));
+    }
+
+    builder.build()?;
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -85,22 +178,32 @@ pub fn run() {
             hotkeys::register_hotkeys(&handle)?;
 
             // Трей: минимальная точка доступа, приложение живёт в фоне без открытого окна.
+            // Меню строится динамически (rebuild_tray_menu), тут — только заготовка.
             let show = MenuItem::with_id(app, "show", "Открыть Дикту", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
-            TrayIconBuilder::new()
+            TrayIconBuilder::with_id(TRAY_ID)
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(move |app, event| match event.id.as_ref() {
-                    "quit" => app.exit(0),
-                    "show" => {
-                        if let Some(w) = app.get_webview_window("main") {
-                            let _ = w.show();
-                            let _ = w.set_focus();
+                .on_menu_event(move |app, event| {
+                    let id = event.id.as_ref();
+                    if let Some(model_id) = id.strip_prefix("model:") {
+                        if let Err(e) = activate_model(app, model_id) {
+                            eprintln!("[tray] не удалось переключить модель: {e}");
                         }
+                        return;
                     }
-                    _ => {}
+                    match id {
+                        "quit" => app.exit(0),
+                        "show" => {
+                            if let Some(w) = app.get_webview_window("main") {
+                                let _ = w.show();
+                                let _ = w.set_focus();
+                            }
+                        }
+                        _ => {}
+                    }
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::Click { .. } = event {
@@ -112,6 +215,14 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            let _ = rebuild_tray_menu(&handle);
+
+            create_overlay_window(app)?;
+
+            // Только трей — без иконки в Dock (macOS) и без записи в панели задач.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             Ok(())
         })

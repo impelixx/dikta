@@ -90,6 +90,42 @@ fn start_recording(app: &AppHandle, mode: RecordingMode) {
         spawn_silence_watcher(app.clone());
     }
     spawn_level_watcher(app.clone());
+    spawn_partial_transcript_watcher(app.clone());
+}
+
+/// "Живые субтитры": пока запись идёт, периодически передекодируем уже
+/// наговоренное целиком. Это не настоящий streaming (нет отдельной online-
+/// модели), а честный компромисс — модель быстрая (RTF << 1), так что
+/// повторный полный декод растущего буфера раз в ~900мс не создаёт заметной
+/// нагрузки для типичной длины диктовки.
+fn spawn_partial_transcript_watcher(app: AppHandle) {
+    std::thread::spawn(move || {
+        let mut last_text = String::new();
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(900));
+            let state = app.state::<AppState>();
+            let still_active = state.active_mode.lock().unwrap().is_some();
+            if !still_active {
+                return;
+            }
+            let samples = state.audio.snapshot();
+            if samples.len() < 16000 / 2 {
+                continue; // меньше 0.5с — decode не имеет смысла
+            }
+            let text = {
+                let recognizer = state.recognizer.lock().unwrap();
+                match recognizer.as_ref() {
+                    Some(r) => r.inner.decode(&samples),
+                    None => return,
+                }
+            };
+            drop(state);
+            if text != last_text && !text.trim().is_empty() {
+                last_text = text.clone();
+                let _ = app.emit("partial-transcript", text);
+            }
+        }
+    });
 }
 
 /// Рассылает уровень громкости во фронтенд для живой волны, пока идёт запись.

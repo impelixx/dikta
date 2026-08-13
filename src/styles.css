@@ -573,6 +573,30 @@ input[type="range"] {
   color: var(--ink-soft);
 }
 
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--cream-2);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.badge-good {
+  background: rgba(122, 148, 113, 0.16);
+  color: var(--good);
+  border-color: rgba(122, 148, 113, 0.35);
+}
+
 .progress-bar {
   width: 100%;
   height: 4px;

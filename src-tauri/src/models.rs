@@ -17,6 +17,13 @@ pub struct ModelInfo {
     pub kind: ModelKind,
     pub archive_stem: &'static str,
     pub size_mb: u32,
+    pub languages: &'static [&'static str],
+    pub punctuation: bool,
+    /// Реальный замер на M-серии Mac (cargo run --example benchmark_models),
+    /// не универсальная гарантия — на другом железе будет отличаться.
+    /// RTF = время декода / длительность аудио, меньше = быстрее.
+    pub measured_rtf: f32,
+    pub measured_load_ms: u32,
 }
 
 /// Модель, добавленная пользователем по произвольному репозиторию Hugging Face.
@@ -79,34 +86,50 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
         ModelInfo {
             id: "giga-ctc-v3",
             name: "GigaAM-CTC v3",
-            description: "Быстрее всего, без знаков препинания. Хороший выбор по умолчанию.",
+            description: "Без знаков препинания. Быстрее всего переключается (лёгкая загрузка).",
             kind: ModelKind::Ctc,
             archive_stem: "sherpa-onnx-nemo-ctc-giga-am-v3-russian-2025-12-16",
             size_mb: 260,
+            languages: &["ru"],
+            punctuation: false,
+            measured_rtf: 0.085,
+            measured_load_ms: 920,
         },
         ModelInfo {
             id: "giga-ctc-punct-v3",
             name: "GigaAM-CTC v3 + пунктуация",
-            description: "Так же быстро, но сама расставляет точки и запятые.",
+            description: "Сама расставляет точки и запятые. Хороший выбор по умолчанию.",
             kind: ModelKind::Ctc,
             archive_stem: "sherpa-onnx-nemo-ctc-punct-giga-am-v3-russian-2025-12-16",
             size_mb: 260,
+            languages: &["ru"],
+            punctuation: true,
+            measured_rtf: 0.084,
+            measured_load_ms: 935,
         },
         ModelInfo {
             id: "giga-transducer-v3",
             name: "GigaAM-Transducer v3",
-            description: "Точнее на сложной речи, но медленнее и без пунктуации.",
+            description: "Без пунктуации. Дольше загружается при переключении (3 onnx-сессии).",
             kind: ModelKind::Transducer,
             archive_stem: "sherpa-onnx-nemo-transducer-giga-am-v3-russian-2025-12-16",
             size_mb: 280,
+            languages: &["ru"],
+            punctuation: false,
+            measured_rtf: 0.086,
+            measured_load_ms: 2300,
         },
         ModelInfo {
             id: "giga-transducer-punct-v3",
             name: "GigaAM-Transducer v3 + пунктуация",
-            description: "Самый точный вариант с пунктуацией — и самый медленный.",
+            description: "С пунктуацией. Дольше загружается при переключении (3 onnx-сессии).",
             kind: ModelKind::Transducer,
             archive_stem: "sherpa-onnx-nemo-transducer-punct-giga-am-v3-russian-2025-12-16",
             size_mb: 280,
+            languages: &["ru"],
+            punctuation: true,
+            measured_rtf: 0.082,
+            measured_load_ms: 1990,
         },
     ]
 }
