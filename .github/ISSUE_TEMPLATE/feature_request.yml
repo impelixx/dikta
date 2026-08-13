@@ -1,0 +1,25 @@
+name: Предложение фичи
+description: Идея новой возможности или улучшения
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему это решает
+      description: Что сейчас неудобно или невозможно сделать
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Предлагаемое решение
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Рассмотренные альтернативы
+    validations:
+      required: false

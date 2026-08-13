@@ -1,0 +1,93 @@
+name: Баг-репорт
+description: Что-то не работает или работает не так, как ожидалось
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо, что сообщаете о проблеме! Чем подробнее описание, тем быстрее получится разобраться.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Что произошло
+      description: Опишите проблему как можно конкретнее
+      placeholder: Например — "запись не запускается по хоткею push-to-talk"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Что ожидалось
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как воспроизвести
+      description: Шаги по порядку
+      placeholder: |
+        1. Открыть Настройки
+        2. ...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Операционная система
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: Версия ОС
+      placeholder: например, macOS 15.1 (Apple Silicon)
+    validations:
+      required: false
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Версия Дикты
+      description: Настройки → о приложении, либо тег релиза
+    validations:
+      required: false
+
+  - type: dropdown
+    id: model
+    attributes:
+      label: Какая модель распознавания активна (если применимо)
+      options:
+        - GigaAM-CTC v3
+        - GigaAM-CTC v3 + пунктуация
+        - GigaAM-Transducer v3
+        - GigaAM-Transducer v3 + пунктуация
+        - Своя модель с Hugging Face
+        - Не применимо / не знаю
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи из терминала (если запускали через `npm run tauri dev`)
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: permissions
+    attributes:
+      label: Проверка прав доступа (macOS)
+      description: Частая причина проблем с записью/вставкой текста
+      options:
+        - label: Микрофон разрешён в System Settings → Privacy & Security → Microphone
+        - label: Accessibility разрешён в System Settings → Privacy & Security → Accessibility (нужен для автовставки)
