@@ -22,7 +22,6 @@
         "minHeight": 480,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "visible": false,
         "skipTaskbar": true
       }
     ],

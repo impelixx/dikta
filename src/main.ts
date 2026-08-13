@@ -201,6 +201,9 @@ function renderSettings() {
   const vadSlider = document.getElementById("vad-sensitivity") as HTMLInputElement;
   vadSlider.value = String(Math.round(currentSettings.vad_sensitivity * 100));
   updateSensitivityLabel(currentSettings.vad_sensitivity);
+  const hangoverSlider = document.getElementById("silence-hangover") as HTMLInputElement;
+  hangoverSlider.value = String(currentSettings.silence_hangover_ms);
+  document.getElementById("silence-hangover-label")!.textContent = `${(currentSettings.silence_hangover_ms / 1000).toFixed(1)}с`;
   (document.getElementById("autostop-push") as HTMLInputElement).checked = currentSettings.autostop_push_to_talk;
   (document.getElementById("autostop-toggle") as HTMLInputElement).checked = currentSettings.autostop_toggle;
   (document.getElementById("autopaste") as HTMLInputElement).checked = currentSettings.autopaste_enabled;
@@ -449,6 +452,12 @@ document.getElementById("vad-sensitivity")!.addEventListener("input", async (e) 
   const value = raw / 100;
   await updateSensitivityLabel(value);
   await setSetting("vad_sensitivity", String(value));
+});
+
+document.getElementById("silence-hangover")!.addEventListener("input", async (e) => {
+  const ms = Number((e.target as HTMLInputElement).value);
+  document.getElementById("silence-hangover-label")!.textContent = `${(ms / 1000).toFixed(1)}с`;
+  await setSetting("silence_hangover_ms", String(ms));
 });
 
 document.getElementById("autostop-push")!.addEventListener("change", (e) => {

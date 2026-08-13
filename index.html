@@ -98,6 +98,16 @@
             </div>
             <div class="field-row">
               <div>
+                <div class="field-label">Пауза до автостопа</div>
+                <div class="field-desc">Сколько тишины ждать перед остановкой — короче для команд, длиннее для связной речи</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <input type="range" id="silence-hangover" min="500" max="4000" step="100" value="2000" />
+                <span class="sensitivity-value" id="silence-hangover-label">2.0с</span>
+              </div>
+            </div>
+            <div class="field-row">
+              <div>
                 <div class="field-label">Автостоп в push-to-talk</div>
                 <div class="field-desc">Дополнительно к отпусканию клавиши</div>
               </div>

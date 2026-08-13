@@ -85,12 +85,31 @@ fn start_recording(app: &AppHandle, mode: RecordingMode) {
 
     state.audio.start(vad);
     let _ = app.emit("recording-started", mode == RecordingMode::Toggle);
+    show_overlay(app);
 
     if autostop {
         spawn_silence_watcher(app.clone());
     }
     spawn_level_watcher(app.clone());
     spawn_partial_transcript_watcher(app.clone());
+}
+
+/// Показ/скрытие оверлея делаем явно из Rust, а не только полагаемся на
+/// JS-слушатели событий в overlay.ts — иначе возможна гонка, если событие
+/// "recording-started" уйдёт до того, как фронтенд оверлея успеет подписаться.
+fn show_overlay(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("overlay") {
+        let _ = w.show();
+    }
+}
+
+fn hide_overlay_after(app: AppHandle, delay_ms: u64) {
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        if let Some(w) = app.get_webview_window("overlay") {
+            let _ = w.hide();
+        }
+    });
 }
 
 /// "Живые субтитры": пока запись идёт, периодически передекодируем уже
@@ -176,7 +195,8 @@ fn stop_recording(app: &AppHandle) {
     let _ = app.emit("recording-stopped", ());
 
     if samples.is_empty() || duration_ms < 200 {
-        return; // слишком коротко, скорее всего случайное нажатие
+        hide_overlay_after(app.clone(), 300); // слишком коротко, скорее всего случайное нажатие
+        return;
     }
 
     let text = {
@@ -185,11 +205,13 @@ fn stop_recording(app: &AppHandle) {
             Some(r) => r.inner.decode(&samples),
             None => {
                 let _ = app.emit("no-model-active", ());
+                hide_overlay_after(app.clone(), 2200);
                 return;
             }
         }
     };
     if text.trim().is_empty() {
+        hide_overlay_after(app.clone(), 400);
         return;
     }
     let quality = crate::asr::signal_quality(&samples);
@@ -209,5 +231,6 @@ fn stop_recording(app: &AppHandle) {
         "transcription-done",
         serde_json::json!({ "text": text, "outcome": format!("{:?}", outcome) }),
     );
+    hide_overlay_after(app.clone(), 1800);
     let _ = started_at; // зарезервировано под будущую метрику задержки инференса
 }

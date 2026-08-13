@@ -21,10 +21,15 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            hotkey_push_to_talk: "F13".to_string(),
+            // F13 — частый выбор для push-to-talk, но физически отсутствует
+            // на большинстве ноутбучных клавиатур (в т.ч. MacBook). Берём
+            // комбинацию, которая точно есть везде.
+            hotkey_push_to_talk: "CmdOrCtrl+Shift+D".to_string(),
             hotkey_toggle: "CmdOrCtrl+Shift+Space".to_string(),
             vad_sensitivity: 0.5,
-            silence_hangover_ms: 900,
+            // 900мс резало живую речь на обычных паузах между фразами —
+            // 2с даёт время на вдох и не обрывает диктовку на полуслове.
+            silence_hangover_ms: 2000,
             autostop_push_to_talk: false,
             autostop_toggle: true,
             autopaste_enabled: true,
