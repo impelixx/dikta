@@ -41,14 +41,6 @@ Accessibility (System Settings → Privacy & Security). Без Accessibility т�
 NC); код приложения при этом свободен (см. «Лицензия» ниже) — модель скачивается
 отдельно во время использования, а не распространяется вместе с кодом.
 
-## Промо-сайт
-
-Статическая страница в [`site/`](site) — публикуется на GitHub Pages через
-`.github/workflows/deploy-site.yml` при пуше в `main` (один раз нужно включить
-Settings → Pages → Source: GitHub Actions в самом репозитории). Ссылку на
-репозиторий в футере/CTA сайта надо проставить вручную (`repoUrl` в конце
-`site/index.html`) после публикации на GitHub.
-
 ## Релизы
 
 `.github/workflows/release.yml` по тегу `vX.Y.Z` собирает инсталляторы под macOS
