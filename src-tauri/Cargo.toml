@@ -31,6 +31,9 @@ enigo = "0.3"
 dirs = "5"
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
+ureq = { version = "2.10", features = ["tls", "json"] }
+tar = "0.4"
+bzip2 = "0.4"
 
 [dev-dependencies]
 hound = "3.5"

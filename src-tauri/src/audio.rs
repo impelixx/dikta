@@ -41,73 +41,117 @@ struct SharedBuffer {
     samples: Vec<f32>,
 }
 
-/// Владеет открытым входным потоком cpal на всё время жизни приложения.
-/// start()/stop() лишь включают/выключают запись сэмплов в буфер — сам поток
-/// не пересоздаётся на каждую диктовку, это дешевле и надёжнее.
+struct StreamHandle {
+    #[allow(dead_code)] // держим поток живым через RAII, не читаем его напрямую
+    stream: cpal::Stream,
+    sample_rate: u32,
+    channels: u16,
+    device_name: Option<String>,
+}
+
+/// Владеет открытым входным потоком cpal. start()/stop() лишь включают/выключают
+/// запись сэмплов в буфер — поток не пересоздаётся на каждую диктовку, только при
+/// явной смене устройства через `switch_device`.
 pub struct AudioEngine {
-    _stream: cpal::Stream,
+    handle: Mutex<StreamHandle>,
     buffer: Arc<Mutex<SharedBuffer>>,
     silence_triggered: Arc<AtomicBool>,
     vad: Arc<Mutex<Option<SilenceDetector>>>,
-    device_sample_rate: u32,
-    device_channels: u16,
 }
 
 unsafe impl Send for AudioEngine {}
 unsafe impl Sync for AudioEngine {}
 
-impl AudioEngine {
-    pub fn new() -> Result<Self> {
-        let host = cpal::default_host();
-        let device = host
-            .default_input_device()
-            .context("не найдено устройство ввода звука")?;
-        let config = device.default_input_config().context("нет конфигурации входа")?;
-        let sample_rate = config.sample_rate().0;
-        let channels = config.channels();
+pub fn list_input_devices() -> Vec<String> {
+    let host = cpal::default_host();
+    match host.input_devices() {
+        Ok(devices) => devices.filter_map(|d| d.name().ok()).collect(),
+        Err(_) => Vec::new(),
+    }
+}
 
+fn build_stream(
+    device_name: Option<&str>,
+    buffer: Arc<Mutex<SharedBuffer>>,
+    silence_triggered: Arc<AtomicBool>,
+    vad: Arc<Mutex<Option<SilenceDetector>>>,
+) -> Result<StreamHandle> {
+    let host = cpal::default_host();
+    let device = match device_name {
+        Some(name) => host
+            .input_devices()?
+            .find(|d| d.name().map(|n| n == name).unwrap_or(false))
+            .with_context(|| format!("устройство ввода «{name}» не найдено"))?,
+        None => host
+            .default_input_device()
+            .context("не найдено устройство ввода звука")?,
+    };
+    let resolved_name = device.name().ok();
+    let config = device.default_input_config().context("нет конфигурации входа")?;
+    let sample_rate = config.sample_rate().0;
+    let channels = config.channels();
+
+    let err_fn = |err| eprintln!("[audio] ошибка потока: {err}");
+    let stream = device.build_input_stream(
+        &config.into(),
+        move |data: &[f32], _| {
+            let mut buf = buffer.lock().unwrap();
+            if !buf.recording {
+                return;
+            }
+            buf.samples.extend_from_slice(data);
+            if let Some(vad) = vad.lock().unwrap().as_mut() {
+                if vad.feed(data) {
+                    silence_triggered.store(true, Ordering::SeqCst);
+                }
+            }
+        },
+        err_fn,
+        None,
+    )?;
+    stream.play()?;
+
+    Ok(StreamHandle {
+        stream,
+        sample_rate,
+        channels,
+        device_name: resolved_name,
+    })
+}
+
+impl AudioEngine {
+    pub fn new(device_name: Option<&str>) -> Result<Self> {
         let buffer = Arc::new(Mutex::new(SharedBuffer {
             recording: false,
             samples: Vec::new(),
         }));
         let silence_triggered = Arc::new(AtomicBool::new(false));
-
-        let buffer_cb = buffer.clone();
-        let silence_cb = silence_triggered.clone();
-        // VAD настраивается заново при каждом start(), но поток должен захватить
-        // изменяемое состояние — держим его тоже в Mutex рядом с буфером.
         let vad: Arc<Mutex<Option<SilenceDetector>>> = Arc::new(Mutex::new(None));
-        let vad_cb = vad.clone();
 
-        let err_fn = |err| eprintln!("[audio] ошибка потока: {err}");
-
-        let stream = device.build_input_stream(
-            &config.into(),
-            move |data: &[f32], _| {
-                let mut buf = buffer_cb.lock().unwrap();
-                if !buf.recording {
-                    return;
-                }
-                buf.samples.extend_from_slice(data);
-                if let Some(vad) = vad_cb.lock().unwrap().as_mut() {
-                    if vad.feed(data) {
-                        silence_cb.store(true, Ordering::SeqCst);
-                    }
-                }
-            },
-            err_fn,
-            None,
-        )?;
-        stream.play()?;
+        let handle = build_stream(device_name, buffer.clone(), silence_triggered.clone(), vad.clone())?;
 
         Ok(Self {
-            _stream: stream,
+            handle: Mutex::new(handle),
             buffer,
             silence_triggered,
             vad,
-            device_sample_rate: sample_rate,
-            device_channels: channels,
         })
+    }
+
+    /// Пересоздаёт входной поток на выбранном устройстве (None = системное по умолчанию).
+    pub fn switch_device(&self, device_name: Option<&str>) -> Result<()> {
+        let new_handle = build_stream(
+            device_name,
+            self.buffer.clone(),
+            self.silence_triggered.clone(),
+            self.vad.clone(),
+        )?;
+        *self.handle.lock().unwrap() = new_handle;
+        Ok(())
+    }
+
+    pub fn current_device_name(&self) -> Option<String> {
+        self.handle.lock().unwrap().device_name.clone()
     }
 
     /// Начинает копить сэмплы. `vad` = Some, если для этой сессии включён автостоп по тишине.
@@ -130,8 +174,9 @@ impl AudioEngine {
         buf.recording = false;
         let raw = std::mem::take(&mut buf.samples);
         drop(buf);
-        let mono = downmix_to_mono(&raw, self.device_channels);
-        resample_linear(&mono, self.device_sample_rate, 16000)
+        let handle = self.handle.lock().unwrap();
+        let mono = downmix_to_mono(&raw, handle.channels);
+        resample_linear(&mono, handle.sample_rate, 16000)
     }
 
     /// RMS громкости последнего небольшого хвоста буфера — для живой волны в UI.

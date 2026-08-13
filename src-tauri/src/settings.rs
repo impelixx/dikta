@@ -1,3 +1,4 @@
+use crate::models::CustomModel;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,6 +11,11 @@ pub struct AppSettings {
     pub autostop_push_to_talk: bool,
     pub autostop_toggle: bool,
     pub autopaste_enabled: bool,
+    pub active_model_id: String,
+    pub custom_models: Vec<CustomModel>,
+    /// None = устройство ввода по умолчанию в системе
+    pub input_device: Option<String>,
+    pub theme: String,
 }
 
 impl Default for AppSettings {
@@ -22,6 +28,10 @@ impl Default for AppSettings {
             autostop_push_to_talk: false,
             autostop_toggle: true,
             autopaste_enabled: true,
+            active_model_id: "giga-ctc-v3".to_string(),
+            custom_models: Vec::new(),
+            input_device: None,
+            theme: "cream".to_string(),
         }
     }
 }
@@ -53,6 +63,20 @@ impl AppSettings {
         }
         if let Ok(Some(v)) = crate::db::get_setting(conn, "autopaste_enabled") {
             s.autopaste_enabled = v == "true";
+        }
+        if let Ok(Some(v)) = crate::db::get_setting(conn, "active_model_id") {
+            s.active_model_id = v;
+        }
+        if let Ok(Some(v)) = crate::db::get_setting(conn, "custom_models") {
+            if let Ok(list) = serde_json::from_str(&v) {
+                s.custom_models = list;
+            }
+        }
+        if let Ok(Some(v)) = crate::db::get_setting(conn, "input_device") {
+            s.input_device = if v.is_empty() { None } else { Some(v) };
+        }
+        if let Ok(Some(v)) = crate::db::get_setting(conn, "theme") {
+            s.theme = v;
         }
         s
     }

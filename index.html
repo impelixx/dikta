@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-theme="cream">
   <head>
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="/src/styles.css" />
@@ -128,6 +128,47 @@
                 <input type="checkbox" id="autopaste" />
                 <span class="track"></span>
               </label>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Устройство ввода</h3>
+            <div class="field-row">
+              <div>
+                <div class="field-label">Микрофон</div>
+                <div class="field-desc">Какое устройство слушать</div>
+              </div>
+              <select id="input-device" class="select-field"></select>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Тема</h3>
+            <div class="field-row">
+              <div>
+                <div class="field-label">Цветовая гамма</div>
+                <div class="field-desc">Крем и терракота, мятная или лавандовая</div>
+              </div>
+              <div class="theme-picker" id="theme-picker">
+                <button data-theme="cream" title="Крем и терракота"></button>
+                <button data-theme="mint" title="Мятная"></button>
+                <button data-theme="lavender" title="Лавандовая"></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Модель распознавания</h3>
+            <div id="model-list"></div>
+            <div class="custom-model-form">
+              <div class="field-desc" style="margin-bottom:8px;">
+                Добавить свою sherpa-onnx-совместимую модель с Hugging Face
+              </div>
+              <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input id="hf-repo-id" type="text" placeholder="например: Smirnov75/GigaAM-v3-sherpa-onnx" style="flex:1;" />
+                <button class="hotkey-btn" id="hf-list-btn">Найти файлы</button>
+              </div>
+              <div id="hf-file-mapping"></div>
             </div>
           </div>
         </section>

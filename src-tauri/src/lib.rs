@@ -3,32 +3,45 @@ pub mod audio;
 pub mod commands;
 pub mod db;
 pub mod hotkeys;
+pub mod models;
 pub mod paste;
 pub mod settings;
 pub mod state;
 pub mod vad;
 
-use asr::GigaAmRecognizer;
+use asr::Recognizer;
 use audio::AudioEngine;
 use settings::AppSettings;
-use state::AppState;
+use state::{ActiveRecognizer, AppState};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::Manager;
 
-fn model_dir(app: &tauri::AppHandle) -> PathBuf {
-    // В бандле ресурсы лежат рядом с исполняемым файлом; в dev-режиме - в src-tauri/resources.
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let bundled = resource_dir
-            .join("resources/model/sherpa-onnx-nemo-ctc-giga-am-russian-2024-10-24");
-        if bundled.exists() {
-            return bundled;
+fn models_base_dir() -> PathBuf {
+    let mut dir = dirs::data_dir().unwrap_or_else(std::env::temp_dir);
+    dir.push("dikta");
+    dir.push("models");
+    dir
+}
+
+fn load_active_recognizer(settings: &AppSettings, models_dir: &PathBuf) -> Option<ActiveRecognizer> {
+    let entry = models::find(&settings.active_model_id, &settings.custom_models)?;
+    if !models::is_downloaded(models_dir, &entry) {
+        return None;
+    }
+    let dir = models::model_root_dir(models_dir, &entry);
+    match Recognizer::from_model_dir(&dir, entry.kind(), 2) {
+        Ok(inner) => Some(ActiveRecognizer {
+            model_id: entry.id().to_string(),
+            inner,
+        }),
+        Err(e) => {
+            eprintln!("[asr] не удалось загрузить модель {}: {e}", entry.id());
+            None
         }
     }
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("resources/model/sherpa-onnx-nemo-ctc-giga-am-russian-2024-10-24")
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -51,21 +64,19 @@ pub fn run() {
                 AppSettings::load(&conn)
             };
 
-            let dir = model_dir(&handle);
-            let model_path = dir.join("model.int8.onnx");
-            let tokens_path = dir.join("tokens.txt");
-            let recognizer = GigaAmRecognizer::new(
-                model_path.to_str().expect("некорректный путь к модели"),
-                tokens_path.to_str().expect("некорректный путь к токенам"),
-                2,
-            )
-            .expect("не удалось инициализировать распознаватель GigaAM");
+            let models_dir = models_base_dir();
+            let recognizer = load_active_recognizer(&settings, &models_dir);
 
-            let audio = AudioEngine::new().expect("не удалось инициализировать аудиовход");
+            // Если сохранённое устройство ввода пропало (отключили микрофон и т.п.),
+            // тихо откатываемся на системное по умолчанию вместо падения приложения.
+            let audio = AudioEngine::new(settings.input_device.as_deref())
+                .or_else(|_| AudioEngine::new(None))
+                .expect("не удалось инициализировать аудиовход");
 
             app.manage(AppState {
                 db,
-                recognizer,
+                recognizer: Mutex::new(recognizer),
+                models_dir,
                 audio,
                 settings: Mutex::new(settings),
                 active_mode: Mutex::new(None),
@@ -112,6 +123,13 @@ pub fn run() {
             commands::delete_history_item,
             commands::get_overall_stats,
             commands::get_daily_stats,
+            commands::list_models,
+            commands::download_model,
+            commands::set_active_model,
+            commands::hf_list_files,
+            commands::add_custom_model,
+            commands::remove_custom_model,
+            commands::list_input_devices,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

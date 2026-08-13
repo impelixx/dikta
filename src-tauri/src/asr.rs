@@ -1,45 +1,55 @@
+use crate::models::ModelKind;
 use anyhow::{bail, Result};
 use sherpa_rs::sherpa_rs_sys;
 use std::ffi::{CStr, CString};
 use std::mem;
 
-/// Тонкая обёртка над sherpa-rs-sys для NeMo CTC (GigaAM) — в высокоуровневом
-/// sherpa-rs нет готового модуля под nemo_ctc, поэтому конфигурируем FFI-структуры
-/// напрямую по образцу zipformer.rs из sherpa-rs.
-pub struct GigaAmRecognizer {
+/// Тонкая обёртка над sherpa-rs-sys — в высокоуровневом sherpa-rs нет готовых
+/// модулей под nemo_ctc/nemo transducer, поэтому конфигурируем FFI-структуры
+/// напрямую по образцу zipformer.rs из sherpa-rs. Поддерживает оба семейства
+/// моделей GigaAM: CTC (один onnx-файл) и Transducer (encoder/decoder/joiner).
+pub struct Recognizer {
     recognizer: *mut sherpa_rs_sys::SherpaOnnxOfflineRecognizer,
-    _model_cstr: CString,
-    _tokens_cstr: CString,
-    _provider_cstr: CString,
-    _decoding_cstr: CString,
+    _keep_alive: Vec<CString>,
 }
 
-unsafe impl Send for GigaAmRecognizer {}
-unsafe impl Sync for GigaAmRecognizer {}
+unsafe impl Send for Recognizer {}
+unsafe impl Sync for Recognizer {}
 
 fn cstr(s: &str) -> CString {
     CString::new(s).expect("string contains NUL byte")
 }
 
-impl GigaAmRecognizer {
-    pub fn new(model_path: &str, tokens_path: &str, num_threads: i32) -> Result<Self> {
-        let model_cstr = cstr(model_path);
-        let tokens_cstr = cstr(tokens_path);
-        let provider_cstr = cstr("cpu");
-        let decoding_cstr = cstr("greedy_search");
+pub struct CtcPaths<'a> {
+    pub model: &'a str,
+    pub tokens: &'a str,
+}
+
+pub struct TransducerPaths<'a> {
+    pub encoder: &'a str,
+    pub decoder: &'a str,
+    pub joiner: &'a str,
+    pub tokens: &'a str,
+}
+
+impl Recognizer {
+    pub fn new_ctc(paths: CtcPaths, num_threads: i32) -> Result<Self> {
+        let model_c = cstr(paths.model);
+        let tokens_c = cstr(paths.tokens);
+        let provider_c = cstr("cpu");
+        let decoding_c = cstr("greedy_search");
 
         let nemo_ctc_config = sherpa_rs_sys::SherpaOnnxOfflineNemoEncDecCtcModelConfig {
-            model: model_cstr.as_ptr(),
+            model: model_c.as_ptr(),
         };
 
         let model_config = unsafe {
             sherpa_rs_sys::SherpaOnnxOfflineModelConfig {
-                tokens: tokens_cstr.as_ptr(),
+                tokens: tokens_c.as_ptr(),
                 num_threads,
                 debug: 0,
-                provider: provider_cstr.as_ptr(),
+                provider: provider_c.as_ptr(),
                 nemo_ctc: nemo_ctc_config,
-                // Прочие варианты моделей нам не нужны — зануляем.
                 transducer: mem::zeroed(),
                 paraformer: mem::zeroed(),
                 whisper: mem::zeroed(),
@@ -57,6 +67,59 @@ impl GigaAmRecognizer {
             }
         };
 
+        Self::create(model_config, decoding_c, vec![model_c, tokens_c, provider_c])
+    }
+
+    pub fn new_transducer(paths: TransducerPaths, num_threads: i32) -> Result<Self> {
+        let encoder_c = cstr(paths.encoder);
+        let decoder_c = cstr(paths.decoder);
+        let joiner_c = cstr(paths.joiner);
+        let tokens_c = cstr(paths.tokens);
+        let provider_c = cstr("cpu");
+        let decoding_c = cstr("greedy_search");
+
+        let transducer_config = sherpa_rs_sys::SherpaOnnxOfflineTransducerModelConfig {
+            encoder: encoder_c.as_ptr(),
+            decoder: decoder_c.as_ptr(),
+            joiner: joiner_c.as_ptr(),
+        };
+
+        let model_config = unsafe {
+            sherpa_rs_sys::SherpaOnnxOfflineModelConfig {
+                tokens: tokens_c.as_ptr(),
+                num_threads,
+                debug: 0,
+                provider: provider_c.as_ptr(),
+                transducer: transducer_config,
+                nemo_ctc: mem::zeroed(),
+                paraformer: mem::zeroed(),
+                whisper: mem::zeroed(),
+                tdnn: mem::zeroed(),
+                model_type: std::ptr::null(),
+                modeling_unit: std::ptr::null(),
+                bpe_vocab: std::ptr::null(),
+                telespeech_ctc: std::ptr::null(),
+                sense_voice: mem::zeroed(),
+                moonshine: mem::zeroed(),
+                fire_red_asr: mem::zeroed(),
+                dolphin: mem::zeroed(),
+                zipformer_ctc: mem::zeroed(),
+                canary: mem::zeroed(),
+            }
+        };
+
+        Self::create(
+            model_config,
+            decoding_c,
+            vec![encoder_c, decoder_c, joiner_c, tokens_c, provider_c],
+        )
+    }
+
+    fn create(
+        model_config: sherpa_rs_sys::SherpaOnnxOfflineModelConfig,
+        decoding_c: CString,
+        mut keep_alive: Vec<CString>,
+    ) -> Result<Self> {
         let feat_config = sherpa_rs_sys::SherpaOnnxFeatureConfig {
             sample_rate: 16000,
             feature_dim: 64,
@@ -66,7 +129,7 @@ impl GigaAmRecognizer {
             sherpa_rs_sys::SherpaOnnxOfflineRecognizerConfig {
                 feat_config,
                 model_config,
-                decoding_method: decoding_cstr.as_ptr(),
+                decoding_method: decoding_c.as_ptr(),
                 blank_penalty: 0.0,
                 hotwords_file: std::ptr::null(),
                 hotwords_score: 0.0,
@@ -82,21 +145,48 @@ impl GigaAmRecognizer {
             unsafe { sherpa_rs_sys::SherpaOnnxCreateOfflineRecognizer(&recognizer_config) };
 
         if recognizer.is_null() {
-            bail!("не удалось создать распознаватель GigaAM (проверьте пути к модели/токенам)");
+            bail!("не удалось создать распознаватель (проверьте пути к модели/токенам)");
         }
 
+        keep_alive.push(decoding_c);
         Ok(Self {
             recognizer: recognizer as *mut _,
-            _model_cstr: model_cstr,
-            _tokens_cstr: tokens_cstr,
-            _provider_cstr: provider_cstr,
-            _decoding_cstr: decoding_cstr,
+            _keep_alive: keep_alive,
         })
     }
 
+    pub fn from_model_dir(dir: &std::path::Path, kind: ModelKind, num_threads: i32) -> Result<Self> {
+        let tokens = dir.join("tokens.txt");
+        let tokens = tokens.to_str().expect("некорректный путь к токенам");
+        match kind {
+            ModelKind::Ctc => {
+                let model = dir.join("model.int8.onnx");
+                Self::new_ctc(
+                    CtcPaths {
+                        model: model.to_str().expect("некорректный путь к модели"),
+                        tokens,
+                    },
+                    num_threads,
+                )
+            }
+            ModelKind::Transducer => {
+                let encoder = dir.join("encoder.int8.onnx");
+                let decoder = dir.join("decoder.onnx");
+                let joiner = dir.join("joiner.onnx");
+                Self::new_transducer(
+                    TransducerPaths {
+                        encoder: encoder.to_str().expect("некорректный путь к encoder"),
+                        decoder: decoder.to_str().expect("некорректный путь к decoder"),
+                        joiner: joiner.to_str().expect("некорректный путь к joiner"),
+                        tokens,
+                    },
+                    num_threads,
+                )
+            }
+        }
+    }
+
     /// Распознаёт моно-сэмплы f32 в диапазоне [-1.0, 1.0] на 16kHz.
-    /// Возвращает текст и грубую оценку качества сигнала (не confidence модели —
-    /// sherpa-onnx C API не отдаёт per-token вероятности для greedy CTC-декода).
     pub fn decode(&self, samples: &[f32]) -> String {
         unsafe {
             let stream = sherpa_rs_sys::SherpaOnnxCreateOfflineStream(self.recognizer);
@@ -125,7 +215,7 @@ impl GigaAmRecognizer {
     }
 }
 
-impl Drop for GigaAmRecognizer {
+impl Drop for Recognizer {
     fn drop(&mut self) {
         unsafe {
             sherpa_rs_sys::SherpaOnnxDestroyOfflineRecognizer(self.recognizer);

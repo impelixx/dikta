@@ -1,7 +1,7 @@
 //! Автономная проверка ASR-пайплайна: cargo run --example decode_test
 //! Декодирует тестовые WAV из resources/model и печатает распознанный текст,
 //! чтобы подтвердить, что GigaAM-CTC действительно понимает русскую речь.
-use dikta_lib::asr::GigaAmRecognizer;
+use dikta_lib::asr::{CtcPaths, Recognizer};
 use hound::WavReader;
 
 fn read_wav(path: &str) -> Vec<f32> {
@@ -18,7 +18,8 @@ fn main() {
     let model = format!("{base}/model.int8.onnx");
     let tokens = format!("{base}/tokens.txt");
 
-    let recognizer = GigaAmRecognizer::new(&model, &tokens, 2).expect("recognizer init failed");
+    let recognizer = Recognizer::new_ctc(CtcPaths { model: &model, tokens: &tokens }, 2)
+        .expect("recognizer init failed");
 
     for wav in ["example.wav", "long_example.wav"] {
         let path = format!("{base}/test_wavs/{wav}");

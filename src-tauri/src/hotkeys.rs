@@ -143,7 +143,16 @@ fn stop_recording(app: &AppHandle) {
         return; // слишком коротко, скорее всего случайное нажатие
     }
 
-    let text = state.recognizer.decode(&samples);
+    let text = {
+        let recognizer = state.recognizer.lock().unwrap();
+        match recognizer.as_ref() {
+            Some(r) => r.inner.decode(&samples),
+            None => {
+                let _ = app.emit("no-model-active", ());
+                return;
+            }
+        }
+    };
     if text.trim().is_empty() {
         return;
     }
