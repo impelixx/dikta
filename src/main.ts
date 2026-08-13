@@ -3,6 +3,37 @@ import { listen } from "@tauri-apps/api/event";
 import UPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
+// ---------- Определение ОС для отображения хоткеев ----------
+// Формат хранения (CmdOrCtrl+Shift+Space, F13 и т.д.) — тот, что понимает
+// tauri-plugin-global-shortcut, и он не меняется. Здесь только отображение.
+
+type Platform = "mac" | "windows" | "linux";
+
+function detectPlatform(): Platform {
+  const uaData = (navigator as any).userAgentData;
+  const platformStr: string = uaData?.platform ?? navigator.platform ?? navigator.userAgent;
+  const p = platformStr.toLowerCase();
+  if (p.includes("mac")) return "mac";
+  if (p.includes("win")) return "windows";
+  return "linux";
+}
+
+const PLATFORM = detectPlatform();
+
+const KEY_SYMBOLS: Record<Platform, Record<string, string>> = {
+  mac: { CmdOrCtrl: "⌘", Shift: "⇧", Alt: "⌥", Super: "⌘", Space: "Space" },
+  windows: { CmdOrCtrl: "Ctrl", Shift: "Shift", Alt: "Alt", Super: "Win", Space: "Space" },
+  linux: { CmdOrCtrl: "Ctrl", Shift: "Shift", Alt: "Alt", Super: "Super", Space: "Space" },
+};
+
+/** Форматирует accelerator-строку (как хранится в настройках) для показа пользователю. */
+function formatAccelerator(accel: string): string {
+  if (!accel) return "—";
+  const symbols = KEY_SYMBOLS[PLATFORM];
+  const parts = accel.split("+").map((token) => symbols[token] ?? token);
+  return PLATFORM === "mac" ? parts.join("") : parts.join("+");
+}
+
 // ---------- Типы, зеркалящие Rust-структуры ----------
 
 interface AppSettings {
@@ -156,8 +187,8 @@ async function loadSettings() {
 }
 
 function renderSettings() {
-  (document.getElementById("hotkey-push") as HTMLButtonElement).textContent = currentSettings.hotkey_push_to_talk;
-  (document.getElementById("hotkey-toggle") as HTMLButtonElement).textContent = currentSettings.hotkey_toggle;
+  (document.getElementById("hotkey-push") as HTMLButtonElement).textContent = formatAccelerator(currentSettings.hotkey_push_to_talk);
+  (document.getElementById("hotkey-toggle") as HTMLButtonElement).textContent = formatAccelerator(currentSettings.hotkey_toggle);
   const vadSlider = document.getElementById("vad-sensitivity") as HTMLInputElement;
   vadSlider.value = String(Math.round(currentSettings.vad_sensitivity * 100));
   updateSensitivityLabel(currentSettings.vad_sensitivity);
@@ -441,7 +472,7 @@ function bindHotkeyCapture(buttonId: string, settingsKey: keyof AppSettings) {
         btn.textContent = original;
         return;
       }
-      btn.textContent = accel;
+      btn.textContent = formatAccelerator(accel);
       await setSetting(settingsKey, accel);
       await loadSettings();
     };

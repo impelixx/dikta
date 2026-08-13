@@ -1,15 +1,15 @@
 @import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 :root {
-  --cream: #f7f1e6;
-  --cream-2: #efe6d4;
-  --paper: #fffdf8;
-  --ink: #3a2f28;
-  --ink-soft: #6b5c4e;
+  --cream: #f4ead9;
+  --cream-2: #ecddc0;
+  --paper: #fffdf9;
+  --ink: #362b21;
+  --ink-soft: #6e6151;
   --terracotta: #c1694f;
-  --terracotta-dim: #d99a83;
-  --terracotta-deep: #a1503a;
-  --line: #e3d8c3;
+  --terracotta-dim: #dfa98f;
+  --terracotta-deep: #a24f36;
+  --line: #e4d6bb;
   --good: #7a9471;
   --warn: #c98a3a;
 
@@ -17,33 +17,33 @@
   --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
 
   --radius: 14px;
-  --shadow: 0 1px 2px rgba(58, 47, 40, 0.06), 0 8px 24px rgba(58, 47, 40, 0.08);
+  --shadow: 0 1px 2px rgba(54, 43, 33, 0.07), 0 10px 26px rgba(54, 43, 33, 0.09);
 }
 
 /* Названия переменных исторически завязаны на первую (кремовую) палитру —
    остальные темы просто переопределяют те же токены своими значениями. */
 [data-theme="mint"] {
-  --cream: #eef5ee;
-  --cream-2: #e2eee0;
-  --paper: #fbfefb;
-  --ink: #29332a;
-  --ink-soft: #5c6b5c;
-  --terracotta: #5f9a6f;
-  --terracotta-dim: #9fc7a9;
-  --terracotta-deep: #3f7a52;
-  --line: #d3e4d2;
+  --cream: #e9f2e7;
+  --cream-2: #daead6;
+  --paper: #fbfdfa;
+  --ink: #2b3a2c;
+  --ink-soft: #5e715e;
+  --terracotta: #6fa37e;
+  --terracotta-dim: #aed3ba;
+  --terracotta-deep: #4c7e5c;
+  --line: #d3e4d0;
 }
 
 [data-theme="lavender"] {
-  --cream: #f2f0f8;
-  --cream-2: #e7e3f3;
-  --paper: #fdfcff;
-  --ink: #322d3d;
-  --ink-soft: #675f78;
-  --terracotta: #8a72c9;
-  --terracotta-dim: #bdaee3;
-  --terracotta-deep: #6a52a8;
-  --line: #ded7ee;
+  --cream: #efe9f7;
+  --cream-2: #e1d6f0;
+  --paper: #fdfbff;
+  --ink: #362e48;
+  --ink-soft: #6c6280;
+  --terracotta: #9782d1;
+  --terracotta-dim: #c7b9e8;
+  --terracotta-deep: #6c56a8;
+  --line: #dccfef;
 }
 
 * {
@@ -78,6 +78,17 @@ nav.rail {
   align-items: center;
   padding: 18px 0;
   gap: 6px;
+  position: relative;
+}
+
+/* Кремовая "подложка" под системные traffic-light кнопки macOS (titleBarStyle:
+   Overlay), чтобы не было белого системного шва сверху окна. */
+.drag-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
 }
 
 nav.rail .brand {
@@ -85,6 +96,7 @@ nav.rail .brand {
   font-weight: 600;
   font-size: 13px;
   color: var(--terracotta-deep);
+  margin-top: 20px;
   margin-bottom: 22px;
   letter-spacing: 0.02em;
 }
@@ -476,26 +488,53 @@ input[type="range"] {
 }
 
 .theme-picker button {
+  appearance: none;
+  -webkit-appearance: none;
   width: 28px;
   height: 28px;
+  flex-shrink: 0;
   border-radius: 50%;
-  border: 2px solid transparent;
+  border: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   cursor: pointer;
   padding: 0;
+  position: relative;
+  overflow: hidden;
+  background: none;
+}
+
+.theme-picker button::before,
+.theme-picker button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.theme-picker button::before {
+  background: var(--swatch-bg);
+}
+
+.theme-picker button::after {
+  background: var(--swatch-accent);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 .theme-picker button[data-theme="cream"] {
-  background: linear-gradient(135deg, #f7f1e6 50%, #c1694f 50%);
+  --swatch-bg: #f4ead9;
+  --swatch-accent: #c1694f;
 }
 .theme-picker button[data-theme="mint"] {
-  background: linear-gradient(135deg, #eef5ee 50%, #5f9a6f 50%);
+  --swatch-bg: #e9f2e7;
+  --swatch-accent: #6fa37e;
 }
 .theme-picker button[data-theme="lavender"] {
-  background: linear-gradient(135deg, #f2f0f8 50%, #8a72c9 50%);
+  --swatch-bg: #efe9f7;
+  --swatch-accent: #9782d1;
 }
 
 .theme-picker button.active {
-  border-color: var(--ink);
+  outline-color: var(--ink);
 }
 
 .model-item {

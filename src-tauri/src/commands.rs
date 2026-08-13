@@ -50,11 +50,15 @@ pub struct ModelListItem {
 #[tauri::command]
 pub fn list_models(state: State<AppState>) -> Vec<ModelListItem> {
     let settings = state.settings.lock().unwrap().clone();
+    // "Активна" должна значить "реально загружена в память", а не просто
+    // "так записано в настройках" — иначе после скачивания модели, которая
+    // уже числилась активной, пользователю негде нажать "использовать".
+    let loaded_id = state.recognizer.lock().unwrap().as_ref().map(|r| r.model_id.clone());
     models::full_catalog(&settings.custom_models)
         .into_iter()
         .map(|entry| {
             let downloaded = models::is_downloaded(&state.models_dir, &entry);
-            let active = entry.id() == settings.active_model_id;
+            let active = loaded_id.as_deref() == Some(entry.id());
             ModelListItem { entry, downloaded, active }
         })
         .collect()
