@@ -501,10 +501,70 @@ document.getElementById("input-device")!.addEventListener("change", async (e) =>
 
 // ---------- Модели распознавания ----------
 
+let allModels: ModelListItem[] = [];
+let modelLangFilter = "all";
+let modelKindFilter: "all" | "Ctc" | "Transducer" | "Whisper" = "all";
+
+function renderModelFilters() {
+  const container = document.getElementById("model-filters")!;
+  const langs = new Set<string>();
+  const kinds = new Set<"Ctc" | "Transducer" | "Whisper">();
+  for (const m of allModels) {
+    kinds.add(m.kind);
+    for (const l of m.languages ?? []) {
+      if (/^[a-z]{2}$/i.test(l)) langs.add(l.toLowerCase());
+    }
+  }
+  const langChips = ["all", ...Array.from(langs).sort()]
+    .map((l) => {
+      const label = l === "all" ? (currentLang === "ru" ? "Все языки" : "All languages") : l.toUpperCase();
+      return `<button class="filter-chip${modelLangFilter === l ? " active" : ""}" data-filter-lang="${l}">${label}</button>`;
+    })
+    .join("");
+  const kindLabels: Record<string, string> = { all: currentLang === "ru" ? "Все типы" : "All types", Ctc: "CTC", Transducer: "Transducer", Whisper: "Whisper" };
+  const kindChips = ["all", ...Array.from(kinds)]
+    .map((k) => `<button class="filter-chip${modelKindFilter === k ? " active" : ""}" data-filter-kind="${k}">${kindLabels[k]}</button>`)
+    .join("");
+
+  container.innerHTML = `
+    <div class="filter-row">${langChips}</div>
+    <div class="filter-row">${kindChips}</div>
+  `;
+
+  container.querySelectorAll<HTMLButtonElement>("[data-filter-lang]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      modelLangFilter = btn.dataset.filterLang!;
+      renderModelFilters();
+      renderModelList();
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>("[data-filter-kind]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      modelKindFilter = btn.dataset.filterKind as typeof modelKindFilter;
+      renderModelFilters();
+      renderModelList();
+    });
+  });
+}
+
 async function loadModels() {
-  const models = await invoke<ModelListItem[]>("list_models");
+  allModels = await invoke<ModelListItem[]>("list_models");
+  renderModelFilters();
+  renderModelList();
+}
+
+function renderModelList() {
+  const models = allModels.filter((m) => {
+    if (modelKindFilter !== "all" && m.kind !== modelKindFilter) return false;
+    if (modelLangFilter !== "all" && !(m.languages ?? []).map((l) => l.toLowerCase()).includes(modelLangFilter)) return false;
+    return true;
+  });
   const list = document.getElementById("model-list")!;
   list.innerHTML = "";
+  if (models.length === 0) {
+    list.innerHTML = `<div class="empty-state">${t("history.empty")}</div>`;
+    return;
+  }
   for (const m of models) {
     const el = document.createElement("div");
     el.className = "model-item" + (m.active ? " active" : "");

@@ -30,6 +30,13 @@ pub struct ModelInfo {
     /// нужно указать явно — Whisper многоязычный, а не заточен под русский.
     pub whisper_file_prefix: Option<&'static str>,
     pub whisper_language: Option<&'static str>,
+    /// Число mel-фильтров, которое ждёт конкретная модель (для CTC/Transducer;
+    /// Whisper фиксирован на 80 внутри asr.rs). GigaAM обучен на 64 — почти
+    /// все остальные NeMo/Conformer-модели на 80. Несовпадение не даёт
+    /// нормальную ошибку, а роняет процесс целиком, так что значение для
+    /// каждой модели проверено вручную (cargo run --example ... с реальным
+    /// аудио), а не угадано по умолчанию.
+    pub feature_dim: i32,
 }
 
 /// Модель, добавленная пользователем по произвольному репозиторию Hugging Face.
@@ -102,6 +109,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             measured_load_ms: 920,
             whisper_file_prefix: None,
             whisper_language: None,
+            feature_dim: 64,
         },
         ModelInfo {
             id: "giga-ctc-punct-v3",
@@ -116,6 +124,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             measured_load_ms: 935,
             whisper_file_prefix: None,
             whisper_language: None,
+            feature_dim: 64,
         },
         ModelInfo {
             id: "giga-transducer-v3",
@@ -130,6 +139,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             measured_load_ms: 2300,
             whisper_file_prefix: None,
             whisper_language: None,
+            feature_dim: 64,
         },
         ModelInfo {
             id: "giga-transducer-punct-v3",
@@ -144,6 +154,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             measured_load_ms: 1990,
             whisper_file_prefix: None,
             whisper_language: None,
+            feature_dim: 64,
         },
         ModelInfo {
             id: "whisper-base",
@@ -158,6 +169,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             measured_load_ms: 660,
             whisper_file_prefix: Some("base"),
             whisper_language: Some("ru"),
+            feature_dim: 80,
         },
         ModelInfo {
             id: "whisper-small",
@@ -172,6 +184,37 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             measured_load_ms: 1510,
             whisper_file_prefix: Some("small"),
             whisper_language: Some("ru"),
+            feature_dim: 80,
+        },
+        ModelInfo {
+            id: "fast-conformer-multilingual",
+            name: "Fast Conformer (10 языков Европы)",
+            description: "Одна модель на белорусский, немецкий, английский, испанский, французский, хорватский, итальянский, польский, русский и украинский — быстрее GigaAM.",
+            kind: ModelKind::Ctc,
+            archive_stem: "sherpa-onnx-nemo-fast-conformer-ctc-be-de-en-es-fr-hr-it-pl-ru-uk-20k-int8",
+            size_mb: 130,
+            languages: &["be", "de", "en", "es", "fr", "hr", "it", "pl", "ru", "uk"],
+            punctuation: false,
+            measured_rtf: 0.027,
+            measured_load_ms: 700,
+            whisper_file_prefix: None,
+            whisper_language: None,
+            feature_dim: 80,
+        },
+        ModelInfo {
+            id: "zipformer-ru",
+            name: "Zipformer RU (Vosk)",
+            description: "Ещё одна модель только на русском (архитектура Zipformer, экспорт проекта Vosk/alphacep) — не от Sber, самая быстрая в каталоге.",
+            kind: ModelKind::Transducer,
+            archive_stem: "sherpa-onnx-zipformer-ru-int8-2025-04-20",
+            size_mb: 84,
+            languages: &["ru"],
+            punctuation: false,
+            measured_rtf: 0.013,
+            measured_load_ms: 1725,
+            whisper_file_prefix: None,
+            whisper_language: None,
+            feature_dim: 80,
         },
     ]
 }

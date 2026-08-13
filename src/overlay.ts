@@ -86,8 +86,8 @@ listen("recording-stopped", () => {
 
 listen<{ text: string; outcome: string }>("transcription-done", (event) => {
   setState("done");
-  const snippet = event.payload.text.length > 40 ? event.payload.text.slice(0, 40) + "…" : event.payload.text;
-  text.textContent = event.payload.outcome === "AutoInserted" ? `${s.autoInserted} ${snippet}` : `${s.copied} ${snippet}`;
+  const full = event.payload.text;
+  text.textContent = event.payload.outcome === "AutoInserted" ? `${s.autoInserted} ${full}` : `${s.copied} ${full}`;
   scheduleHide(1600);
 });
 

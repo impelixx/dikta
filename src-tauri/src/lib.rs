@@ -7,6 +7,7 @@ pub mod models;
 pub mod paste;
 pub mod settings;
 pub mod state;
+pub mod tray_icons;
 pub mod vad;
 
 use asr::Recognizer;
@@ -58,6 +59,17 @@ pub fn rebuild_tray_menu(app: &AppHandle) -> tauri::Result<()> {
     let menu = Menu::with_items(app, &[&show, &models_submenu, &quit])?;
     tray.set_menu(Some(menu))?;
     Ok(())
+}
+
+/// Показывает главное окно и возвращает иконку в Dock/Cmd+Tab на macOS —
+/// только пока окно реально открыто, чтобы по умолчанию оставаться в трее.
+fn show_main_window(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
 }
 
 /// Общая логика активации модели — используется и Tauri-командой из настроек,
@@ -112,7 +124,7 @@ fn load_active_recognizer(settings: &AppSettings, models_dir: &PathBuf) -> Optio
 /// (а он почти всегда там, раз хоткей глобальный).
 fn create_overlay_window(app: &tauri::App) -> tauri::Result<()> {
     let width = 400.0;
-    let height = 64.0;
+    let height = 170.0;
     let mut builder = tauri::WebviewWindowBuilder::new(app, "overlay", tauri::WebviewUrl::App("overlay.html".into()))
         .title("Дикта")
         .inner_size(width, height)
@@ -173,6 +185,7 @@ pub fn run() {
                 audio,
                 settings: Mutex::new(settings),
                 active_mode: Mutex::new(None),
+                processing: std::sync::atomic::AtomicBool::new(false),
             });
 
             hotkeys::register_hotkeys(&handle)?;
@@ -182,8 +195,10 @@ pub fn run() {
             let show = MenuItem::with_id(app, "show", "Открыть Дикту", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
+            let idle_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray/tray-idle.png"))
+                .unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
             TrayIconBuilder::with_id(TRAY_ID)
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(idle_icon)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(move |app, event| {
@@ -196,22 +211,13 @@ pub fn run() {
                     }
                     match id {
                         "quit" => app.exit(0),
-                        "show" => {
-                            if let Some(w) = app.get_webview_window("main") {
-                                let _ = w.show();
-                                let _ = w.set_focus();
-                            }
-                        }
+                        "show" => show_main_window(app),
                         _ => {}
                     }
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::Click { .. } = event {
-                        let app = tray.app_handle();
-                        if let Some(w) = app.get_webview_window("main") {
-                            let _ = w.show();
-                            let _ = w.set_focus();
-                        }
+                        show_main_window(tray.app_handle());
                     }
                 })
                 .build(app)?;
@@ -220,13 +226,17 @@ pub fn run() {
 
             // Крестик прячет окно в трей вместо выхода из приложения — оно
             // остаётся живо в фоне (хоткеи, оверлей), выход только через
-            // трей-меню "Выход".
+            // трей-меню "Выход". Иконка в Dock/Cmd+Tab появляется только
+            // пока окно реально открыто.
             if let Some(main_window) = app.get_webview_window("main") {
                 let window_to_hide = main_window.clone();
+                let app_for_hide = handle.clone();
                 main_window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         api.prevent_close();
                         let _ = window_to_hide.hide();
+                        #[cfg(target_os = "macos")]
+                        let _ = app_for_hide.set_activation_policy(tauri::ActivationPolicy::Accessory);
                     }
                 });
             }
@@ -235,7 +245,7 @@ pub fn run() {
 
             // Только трей — без иконки в Dock (macOS) и без записи в панели задач.
             #[cfg(target_os = "macos")]
-            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             Ok(())
         })

@@ -1,7 +1,9 @@
 use crate::db;
 use crate::paste::insert_text;
 use crate::state::{AppState, RecordingMode};
+use crate::tray_icons;
 use crate::vad::SilenceDetector;
+use std::sync::atomic::Ordering;
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
@@ -92,6 +94,11 @@ fn start_recording(app: &AppHandle, mode: RecordingMode) {
     }
     spawn_level_watcher(app.clone());
     spawn_partial_transcript_watcher(app.clone());
+
+    let app_for_icon = app.clone();
+    tray_icons::animate_listening(app.clone(), move || {
+        app_for_icon.state::<AppState>().active_mode.lock().unwrap().is_some()
+    });
 }
 
 /// Показ/скрытие оверлея делаем явно из Rust, а не только полагаемся на
@@ -196,8 +203,15 @@ fn stop_recording(app: &AppHandle) {
 
     if samples.is_empty() || duration_ms < 200 {
         hide_overlay_after(app.clone(), 300); // слишком коротко, скорее всего случайное нажатие
+        tray_icons::set_idle(app);
         return;
     }
+
+    state.processing.store(true, Ordering::SeqCst);
+    let app_for_icon = app.clone();
+    tray_icons::animate_processing(app.clone(), move || {
+        app_for_icon.state::<AppState>().processing.load(Ordering::SeqCst)
+    });
 
     let text = {
         let recognizer = state.recognizer.lock().unwrap();
@@ -206,12 +220,14 @@ fn stop_recording(app: &AppHandle) {
             None => {
                 let _ = app.emit("no-model-active", ());
                 hide_overlay_after(app.clone(), 2200);
+                state.processing.store(false, Ordering::SeqCst);
                 return;
             }
         }
     };
     if text.trim().is_empty() {
         hide_overlay_after(app.clone(), 400);
+        state.processing.store(false, Ordering::SeqCst);
         return;
     }
     let quality = crate::asr::signal_quality(&samples);
@@ -232,5 +248,6 @@ fn stop_recording(app: &AppHandle) {
         serde_json::json!({ "text": text, "outcome": format!("{:?}", outcome) }),
     );
     hide_overlay_after(app.clone(), 1800);
+    state.processing.store(false, Ordering::SeqCst);
     let _ = started_at; // зарезервировано под будущую метрику задержки инференса
 }

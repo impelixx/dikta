@@ -40,6 +40,10 @@ pub struct WhisperPaths<'a> {
 
 impl Recognizer {
     pub fn new_ctc(paths: CtcPaths, num_threads: i32) -> Result<Self> {
+        Self::new_ctc_with_dim(paths, num_threads, 64)
+    }
+
+    pub fn new_ctc_with_dim(paths: CtcPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
         let model_c = cstr(paths.model);
         let tokens_c = cstr(paths.tokens);
         let provider_c = cstr("cpu");
@@ -73,10 +77,14 @@ impl Recognizer {
             }
         };
 
-        Self::create(model_config, decoding_c, vec![model_c, tokens_c, provider_c], 64)
+        Self::create(model_config, decoding_c, vec![model_c, tokens_c, provider_c], feature_dim)
     }
 
     pub fn new_transducer(paths: TransducerPaths, num_threads: i32) -> Result<Self> {
+        Self::new_transducer_with_dim(paths, num_threads, 64)
+    }
+
+    pub fn new_transducer_with_dim(paths: TransducerPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
         let encoder_c = cstr(paths.encoder);
         let decoder_c = cstr(paths.decoder);
         let joiner_c = cstr(paths.joiner);
@@ -118,7 +126,7 @@ impl Recognizer {
             model_config,
             decoding_c,
             vec![encoder_c, decoder_c, joiner_c, tokens_c, provider_c],
-            64,
+            feature_dim,
         )
     }
 
@@ -213,24 +221,40 @@ impl Recognizer {
     }
 
     pub fn from_model_dir(dir: &std::path::Path, kind: ModelKind, num_threads: i32) -> Result<Self> {
+        Self::from_model_dir_with_dim(dir, kind, num_threads, 64)
+    }
+
+    /// feature_dim (число mel-фильтров) зависит от конкретной модели, а не
+    /// только от её "формы" (CTC/Transducer) — GigaAM обучен на 64, а
+    /// большинство остальных NeMo/Conformer-моделей ожидают 80. Несовпадение
+    /// не возвращает ошибку — роняет процесс целиком (необрабатываемое
+    /// исключение из sherpa-onnx C API), поэтому для каждой модели каталога
+    /// значение проверено вручную перед добавлением, а не угадано.
+    pub fn from_model_dir_with_dim(
+        dir: &std::path::Path,
+        kind: ModelKind,
+        num_threads: i32,
+        feature_dim: i32,
+    ) -> Result<Self> {
         let tokens = dir.join("tokens.txt");
         let tokens = tokens.to_str().expect("некорректный путь к токенам");
         match kind {
             ModelKind::Ctc => {
                 let model = dir.join("model.int8.onnx");
-                Self::new_ctc(
+                Self::new_ctc_with_dim(
                     CtcPaths {
                         model: model.to_str().expect("некорректный путь к модели"),
                         tokens,
                     },
                     num_threads,
+                    feature_dim,
                 )
             }
             ModelKind::Transducer => {
                 let encoder = dir.join("encoder.int8.onnx");
                 let decoder = dir.join("decoder.onnx");
                 let joiner = dir.join("joiner.onnx");
-                Self::new_transducer(
+                Self::new_transducer_with_dim(
                     TransducerPaths {
                         encoder: encoder.to_str().expect("некорректный путь к encoder"),
                         decoder: decoder.to_str().expect("некорректный путь к decoder"),
@@ -238,6 +262,7 @@ impl Recognizer {
                         tokens,
                     },
                     num_threads,
+                    feature_dim,
                 )
             }
             // Whisper грузится через from_whisper_dir (нужен префикс имени файлов
@@ -257,7 +282,10 @@ impl Recognizer {
                 let language = info.whisper_language.unwrap_or("ru");
                 Self::from_whisper_dir(dir, prefix, language, num_threads)
             }
-            _ => Self::from_model_dir(dir, entry.kind(), num_threads),
+            ModelEntry::Builtin(info) => {
+                Self::from_model_dir_with_dim(dir, info.kind, num_threads, info.feature_dim)
+            }
+            ModelEntry::Custom(_) => Self::from_model_dir(dir, entry.kind(), num_threads),
         }
     }
 

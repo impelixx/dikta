@@ -3,6 +3,7 @@ use crate::audio::AudioEngine;
 use crate::db::Db;
 use crate::settings::AppSettings;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,4 +24,7 @@ pub struct AppState {
     pub audio: AudioEngine,
     pub settings: Mutex<AppSettings>,
     pub active_mode: Mutex<Option<RecordingMode>>,
+    /// Отдельно от active_mode: recording уже остановлена, но decode/paste/save
+    /// ещё не закончились — используется для живой иконки трея "распознаю".
+    pub processing: AtomicBool,
 }
