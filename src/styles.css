@@ -1,17 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 :root {
-  --cream: #f4ead9;
-  --cream-2: #ecddc0;
-  --paper: #fffdf9;
-  --ink: #362b21;
-  --ink-soft: #6e6151;
-  --terracotta: #c1694f;
-  --terracotta-dim: #dfa98f;
-  --terracotta-deep: #a24f36;
-  --line: #e4d6bb;
-  --good: #7a9471;
-  --warn: #c98a3a;
+  --cream: #f6eee2;
+  --cream-2: #eee1c8;
+  --paper: #fffdfa;
+  --ink: #3d3226;
+  --ink-soft: #74675a;
+  --terracotta: #c9795f;
+  --terracotta-dim: #e5b7a0;
+  --terracotta-deep: #ac5b42;
+  --line: #e8dcc5;
+  --good: #82a075;
+  --warn: #cb9550;
 
   --font-serif: "Lora", Georgia, serif;
   --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
@@ -23,27 +23,27 @@
 /* Названия переменных исторически завязаны на первую (кремовую) палитру —
    остальные темы просто переопределяют те же токены своими значениями. */
 [data-theme="mint"] {
-  --cream: #e9f2e7;
-  --cream-2: #daead6;
-  --paper: #fbfdfa;
-  --ink: #2b3a2c;
-  --ink-soft: #5e715e;
-  --terracotta: #6fa37e;
-  --terracotta-dim: #aed3ba;
-  --terracotta-deep: #4c7e5c;
-  --line: #d3e4d0;
+  --cream: #eef5eb;
+  --cream-2: #e0eeda;
+  --paper: #fbfdf9;
+  --ink: #33402f;
+  --ink-soft: #647560;
+  --terracotta: #7aac8c;
+  --terracotta-dim: #bcdac6;
+  --terracotta-deep: #578866;
+  --line: #dae8d5;
 }
 
 [data-theme="lavender"] {
-  --cream: #efe9f7;
-  --cream-2: #e1d6f0;
+  --cream: #f2edf8;
+  --cream-2: #e6dcf1;
   --paper: #fdfbff;
-  --ink: #362e48;
-  --ink-soft: #6c6280;
-  --terracotta: #9782d1;
-  --terracotta-dim: #c7b9e8;
-  --terracotta-deep: #6c56a8;
-  --line: #dccfef;
+  --ink: #3c3450;
+  --ink-soft: #726892;
+  --terracotta: #a291d3;
+  --terracotta-dim: #d0c3ea;
+  --terracotta-deep: #7a63b3;
+  --line: #e0d4f0;
 }
 
 * {
@@ -108,12 +108,29 @@ nav.rail button {
   background: transparent;
   border-radius: 12px;
   color: var(--ink-soft);
-  font-size: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+nav.rail button svg {
+  width: 21px;
+  height: 21px;
+}
+
+.lang-toggle {
+  margin-top: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  width: 36px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper);
 }
 
 nav.rail button:hover {
@@ -521,16 +538,16 @@ input[type="range"] {
 }
 
 .theme-picker button[data-theme="cream"] {
-  --swatch-bg: #f4ead9;
-  --swatch-accent: #c1694f;
+  --swatch-bg: #f6eee2;
+  --swatch-accent: #c9795f;
 }
 .theme-picker button[data-theme="mint"] {
-  --swatch-bg: #e9f2e7;
-  --swatch-accent: #6fa37e;
+  --swatch-bg: #eef5eb;
+  --swatch-accent: #7aac8c;
 }
 .theme-picker button[data-theme="lavender"] {
-  --swatch-bg: #efe9f7;
-  --swatch-accent: #9782d1;
+  --swatch-bg: #f2edf8;
+  --swatch-accent: #a291d3;
 }
 
 .theme-picker button.active {

@@ -1,235 +1,196 @@
-# Дикта
+# Dikta
 
 [![CI](https://github.com/impelixx/dikta/actions/workflows/ci.yml/badge.svg)](https://github.com/impelixx/dikta/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-stable-orange.svg?logo=rust)](src-tauri)
+[![TypeScript](https://img.shields.io/badge/typescript-5.6-3178c6.svg?logo=typescript&logoColor=white)](src)
+[![Tauri](https://img.shields.io/badge/tauri-2-24c8db.svg?logo=tauri&logoColor=white)](https://tauri.app)
 
-Push-to-talk диктовка на русском языке — распознавание речи полностью на вашем
-компьютере, без облака и подписок. Нажали хоткей, сказали — текст уже вставлен
-в поле, где стоял курсор, в любом приложении.
+*[Русская версия](README.ru.md)*
 
-Под капотом — [GigaAM](https://github.com/salute-developers/GigaAM) (Sber),
-запущенная через [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) прямо в
-Rust-процессе, без Python-рантайма. Десктоп-обвязка на [Tauri 2](https://tauri.app/)
-+ тонкий TypeScript-фронт без фреймворков.
+Push-to-talk dictation for Russian — speech recognition running entirely on
+your machine, no cloud, no subscription. Press the hotkey, speak, and the text
+is already typed into whatever field had focus, in any application.
 
-## Содержание
+Under the hood: local ASR models ([GigaAM](https://github.com/salute-developers/GigaAM)
+by Sber, plus Whisper by OpenAI) served through [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)
+directly inside the Rust process — no Python runtime involved. Desktop shell
+built with [Tauri 2](https://tauri.app/) and a thin TypeScript frontend, no
+framework.
 
-- [Возможности](#возможности)
-- [Установка](#установка)
-- [Как пользоваться](#как-пользоваться)
-- [Модели распознавания](#модели-распознавания)
-- [Настройки](#настройки)
-- [Права доступа на macOS](#права-доступа-на-macos)
-- [Архитектура](#архитектура)
-- [Разработка](#разработка)
-- [Частые вопросы](#частые-вопросы)
-- [Лицензия](#лицензия)
+## Contents
 
-## Возможности
+- [Features](#features)
+- [Install](#install)
+- [Usage](#usage)
+- [Settings](#settings)
+- [macOS permissions](#macos-permissions)
+- [Architecture](#architecture)
+- [Development](#development)
+- [FAQ](#faq)
+- [License](#license)
+
+## Features
 
 | | |
 |---|---|
-| **Push-to-talk и toggle хоткеи** | Свои комбинации для каждого режима, ловятся глобально в любом приложении, независимо от фокуса |
-| **Автостоп по тишине** | Регулируемая чувствительность (от «шёпот — тишина» до «стройка») и отдельно длительность паузы |
-| **Живые субтитры** | Уже наговоренное видно прямо во время речи — растущий буфер передекодируется каждые ~900мс |
-| **Плавающий оверлей** | Статус записи/распознавания поверх любого приложения — не нужно переключаться на окно Дикты |
-| **Автовставка текста** | В фокусное поле через Accessibility API, с гарантированным fallback в буфер обмена |
-| **6 моделей в каталоге** | 4 варианта GigaAM v3 (CTC/Transducer, ±пунктуация) + Whisper base/small — переключаются на лету из трея, с реальными замерами скорости |
-| **Свои модели с Hugging Face** | Любая sherpa-onnx-совместимая модель по repo id, с ручным сопоставлением файлов ролям |
-| **Выбор микрофона** | Переключение устройства ввода без перезапуска приложения |
-| **Три темы** | Крем/терракота, мятная, лавандовая |
-| **История и статистика** | Поиск/копирование/удаление записей, графики активности по дням |
-| **Только в трее** | Не занимает Dock/панель задач; закрытие окна прячет его, не завершает приложение |
+| **Push-to-talk and toggle hotkeys** | Separate bindings for each mode, captured globally in any application regardless of focus |
+| **Silence-based auto-stop** | Adjustable sensitivity (from "whisper-quiet" to "construction site") and pause duration |
+| **Live captions** | See what you've said while you're still talking — the growing buffer is re-decoded roughly every 900ms |
+| **Floating overlay** | Recording/recognition status on top of any app — no need to switch to the Dikta window |
+| **Auto-paste** | Types into the focused field via the Accessibility API, with a guaranteed clipboard fallback |
+| **6 models in the catalog** | 4 GigaAM v3 variants (CTC/Transducer, ±punctuation) + Whisper base/small — switch on the fly from the tray, with real measured speed |
+| **Bring your own model** | Any sherpa-onnx-compatible model by Hugging Face repo id |
+| **Microphone selection** | Switch the input device without restarting the app |
+| **Three themes** | Cream/terracotta, mint, lavender |
+| **History and stats** | Search/copy/delete past transcriptions, daily activity charts |
+| **Tray-only** | Doesn't sit in the Dock/taskbar; closing the window hides it instead of quitting |
 
-## Установка
+## Install
 
-**Из релиза.** Скачайте инсталлятор под свою ОС со страницы
-[Releases](https://github.com/impelixx/dikta/releases). Сборки не подписаны
-сертификатом Apple Developer — на macOS при первом запуске система заблокирует
-приложение; откройте его через System Settings → Privacy & Security → **Open
-Anyway**.
+**From a release.** Grab the installer for your OS from
+[Releases](https://github.com/impelixx/dikta/releases). Builds aren't signed
+with an Apple Developer certificate — on first launch macOS will block it;
+open it via System Settings → Privacy & Security → **Open Anyway**.
 
-**Из исходников:**
+**From source:**
 
 ```bash
 git clone https://github.com/impelixx/dikta.git
 cd dikta
 npm install
-npm run tauri dev      # разработка, с hot-reload
-# или
-npm run tauri build    # production-сборка инсталлятора
+npm run tauri dev      # development, with hot-reload
+# or
+npm run tauri build    # production installer build
 ```
 
-Модель нужно скачать один раз прямо в приложении — при первом запуске
-достаточной модели ещё нет, оверлей покажет подсказку зайти в Настройки →
-«Модель распознавания» → «Скачать» (≈260–280МБ, один из вариантов GigaAM v3).
+You'll need to download a model once, right inside the app — on first launch
+there isn't one yet, and the overlay will point you to Settings → "Recognition
+model" → "Download" (roughly 165–380MB depending on which one you pick).
 
-## Как пользоваться
+## Usage
 
-1. **Нажмите хоткей** в любом приложении — по умолчанию `⌘⇧D` для push-to-talk
-   (держать, пока говорите) или `⌘⇧Space` для toggle (нажать — начать, нажать
-   ещё раз — остановить). Оба хоткея настраиваются в Настройках кликом по
-   кнопке и вводом нужной комбинации.
-2. **Говорите.** Плавающий оверлей внизу экрана покажет текст живьём, по мере
-   распознавания — это не «настоящий» realtime-стриминг (отдельной online-модели
-   нет), а честный компромисс: растущий буфер целиком передекодируется примерно
-   раз в 900мс, и поскольку модель декодирует быстрее реального времени
-   (RTF ≈ 0.08, то есть ×12 к реальному времени — см. [замеры](#модели-распознавания)),
-   задержка не заметна на типичной длине диктовки.
-3. **Отпустите/остановите.** Если включён автостоп по тишине — можно вообще не
-   нажимать повторно, запись остановится сама после паузы нужной длины.
-   Распознанный текст автоматически печатается в поле, где стоял курсор. Если
-   автовставка недоступна (нет прав или контекст не поддерживает её) — текст
-   гарантированно оказывается в буфере обмена, вставьте вручную `⌘V`/`Ctrl+V`.
+1. **Press the hotkey** in any application — `⌘⇧D` by default for push-to-talk
+   (hold while speaking) or `⌘⇧Space` for toggle (press to start, press again
+   to stop). Both are rebindable in Settings by clicking the button and typing
+   the combination you want.
+2. **Speak.** The floating overlay near the bottom of the screen shows the
+   text live as you go — this isn't "real" realtime streaming (there's no
+   dedicated online model), it's an honest compromise: the growing buffer is
+   fully re-decoded roughly every 900ms, and since the model decodes faster
+   than realtime (RTF ≈ 0.08, i.e. ~12x realtime for the default model), the
+   lag isn't noticeable at typical dictation lengths.
+3. **Release/stop.** With auto-stop on, you don't even need to press again —
+   recording stops itself after the configured pause. The recognized text is
+   typed automatically wherever the cursor was. If auto-paste isn't available
+   (no permission, or the context doesn't support it), the text is guaranteed
+   to land in the clipboard — paste manually with `⌘V`/`Ctrl+V`.
 
-Всё, что вы наговорили, попадает в историю (поиск, копирование, удаление) и
-статистику (время, слова, сессии, график активности по дням).
+Everything you've dictated goes into history (searchable, copyable, deletable)
+and stats (time, words, sessions, a daily activity chart).
 
-## Модели распознавания
+## Settings
 
-Используются готовые ONNX-экспорты из [sherpa-onnx model
-zoo](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models) — конверсия
-из PyTorch не нужна, модель сразу готова к работе после скачивания. По
-умолчанию — GigaAM (Sber), специализированный на русском; дополнительно можно
-скачать Whisper (OpenAI) — многоязычную альтернативу.
+- **Hotkeys** — push-to-talk and toggle, set by pressing the combination you want
+- **Auto-stop sensitivity** — how quiet it needs to get before stopping
+- **Pause before auto-stop** — how long to wait in silence (0.5–4s), shorter for commands, longer for connected speech
+- **Auto-stop in push-to-talk / in toggle** — toggled independently
+- **Auto-paste** — on/off; when off, text goes straight to the clipboard
+- **Input device** — pick your microphone
+- **Theme** — cream/terracotta, mint, lavender
+- **Recognition model** — the built-in catalog, plus your own Hugging Face models
 
-Переключение — в один клик из трей-меню («Модель» → нужный вариант) или в
-Настройках. Скорость декодирования и время загрузки при переключении измерены
-локально (`cargo run --example benchmark_models --release` в `src-tauri`, на
-Apple Silicon Mac) и показаны в интерфейсе честными цифрами, а не маркетингом:
+All settings live in SQLite in the app's standard data directory
+(`~/Library/Application Support/dikta` on macOS), alongside the history.
 
-| Модель | Тип | Пунктуация | Скорость (RTF) | Загрузка | Размер |
-|---|---|---|---|---|---|
-| GigaAM-CTC v3 | CTC | нет | ×12 к реальному времени | ~0.9с | ~260МБ |
-| GigaAM-CTC v3 + пунктуация | CTC | да | ×12 к реальному времени | ~0.9с | ~260МБ |
-| GigaAM-Transducer v3 | Transducer | нет | ×12 к реальному времени | ~2.3с | ~280МБ |
-| GigaAM-Transducer v3 + пунктуация | Transducer | да | ×12 к реальному времени | ~2.0с | ~280МБ |
-| Whisper base (OpenAI) | Whisper | да | ×12 к реальному времени | ~0.7с | ~165МБ |
-| Whisper small (OpenAI) | Whisper | да | ×4 к реальному времени | ~1.5с | ~380МБ |
+## macOS permissions
 
-CTC и Transducer декодируют с одинаковой скоростью — разница только во времени
-загрузки при переключении (у Transducer три onnx-сессии вместо одной). Цифры
-специфичны для тестовой машины — на вашем железе будут другими, но порядок
-сохранится.
+- **Microphone** — required, recording won't start without it
+- **Accessibility** — needed for auto-paste via synthetic keyboard events.
+  Without it the text still reliably lands in the clipboard — just paste it
+  manually. One notable wrinkle: on macOS, attempting auto-paste without the
+  permission may not surface as an explicit error (CGEventPost simply doesn't
+  reach the target app), so Dikta checks `AXIsProcessTrusted()` up front
+  instead of trusting the return value blindly.
 
-**Про Whisper — честно.** Это единственная в каталоге по-настоящему
-многоязычная модель (~99 языков в одной модели, без переключения), и по
-скорости `base`-вариант не уступает GigaAM. Но на русском Whisper заметно чаще
-ошибается в деталях, чем специализированная под русский GigaAM — на тестовой
-фразе «У лукоморья дуб зелёный» обе версии Whisper исказили последнюю строку,
-пока GigaAM распознала её без ошибок. Если нужен только русский — GigaAM лучше;
-если нужна одна модель на несколько языков — Whisper.
+Both permissions live under System Settings → Privacy & Security.
 
-Также можно подключить любую свою sherpa-onnx-совместимую модель: Настройки →
-«Модель распознавания» → укажите repo id на Hugging Face, Дикта покажет список
-`.onnx`/`.txt` файлов в репозитории и предложит сопоставить их ролям (токены /
-модель для CTC, либо encoder/decoder/joiner для Transducer) — имена файлов у
-разных репозиториев не унифицированы, поэтому финальный выбор всегда за вами.
-
-**Лицензия модели.** Сама модель GigaAM распространяется отдельно от кода
-приложения и лицензирована **некоммерчески** (GigaAM License NC — PDF внутри
-архива модели). Код Дикты при этом свободен под MIT (см. [Лицензия](#лицензия)) —
-скачивание модели происходит во время использования приложения, а не как часть
-дистрибутива.
-
-## Настройки
-
-- **Хоткеи** — push-to-talk и toggle, задаются нажатием нужной комбинации
-- **Чувствительность автостопа** — насколько тихо должно быть для остановки
-- **Пауза до автостопа** — сколько тишины ждать (0.5–4с), короче для команд,
-  длиннее для связной речи
-- **Автостоп в push-to-talk / в toggle** — включаются независимо
-- **Автовставка** — вкл/выкл, при выключенной текст сразу уходит в буфер
-- **Устройство ввода** — выбор микрофона
-- **Тема** — крем/терракота, мятная, лавандовая
-- **Модель распознавания** — каталог + свои модели с Hugging Face
-
-Все настройки хранятся в SQLite в стандартной директории данных приложения
-(`~/Library/Application Support/dikta` на macOS) вместе с историей записей.
-
-## Права доступа на macOS
-
-- **Microphone** — обязательно, без него запись не начнётся
-- **Accessibility** — нужен для автовставки текста через синтетические события
-  клавиатуры. Без него текст всё равно надёжно попадёт в буфер обмена — просто
-  вставьте вручную. Важный нюанс: на macOS попытка автовставки без выданного
-  разрешения может не вернуть ошибку явно (CGEventPost просто не долетает до
-  целевого приложения), поэтому Дикта заранее проверяет `AXIsProcessTrusted()`,
-  а не доверяет коду возврата вслепую.
-
-Оба разрешения — в System Settings → Privacy & Security.
-
-## Архитектура
+## Architecture
 
 ```
-src/                   фронтенд главного окна (TS, без фреймворка)
-src/overlay.ts          фронтенд плавающего оверлея
+src/                   main window frontend (TS, no framework)
+src/overlay.ts          floating overlay frontend
 src-tauri/src/
-  lib.rs                 точка входа, трей, окна, роутинг команд
-  hotkeys.rs             push-to-talk/toggle, живые субтитры, VAD-watcher
-  audio.rs               cpal-обвязка, ресемплинг, снапшоты буфера
-  asr.rs                 FFI-обёртка sherpa-rs-sys (CTC и Transducer)
-  models.rs              каталог моделей, скачивание, кастомные HF-модели
-  db.rs                  SQLite: история, статистика, настройки
-  paste.rs               автовставка + безусловный fallback в буфер
-  vad.rs                 детектор тишины по RMS-энергии
-  settings.rs             структура и (де)сериализация настроек
-  commands.rs             Tauri-команды, вызываемые из фронтенда
-site/                  промо-страница (статика, публикуется на GitHub Pages)
+  lib.rs                 entry point, tray, windows, command routing
+  hotkeys.rs             push-to-talk/toggle, live captions, VAD watcher
+  audio.rs               cpal wrapper, resampling, buffer snapshots
+  asr.rs                 FFI wrapper over sherpa-rs-sys (CTC, Transducer, Whisper)
+  models.rs              model catalog, downloads, custom HF models
+  db.rs                  SQLite: history, stats, settings
+  paste.rs               auto-paste + unconditional clipboard fallback
+  vad.rs                 silence detector based on RMS energy
+  settings.rs             settings struct and (de)serialization
+  commands.rs             Tauri commands invoked from the frontend
+site/                  promo page (static, published to GitHub Pages)
 ```
 
-Поток данных при диктовке: хоткей → `AudioEngine::start` (cpal-поток уже открыт
-на всё время жизни приложения, start/stop только переключают запись сэмплов в
-буфер) → параллельно текут VAD-watcher (автостоп), level-watcher (волна в UI) и
-partial-transcript-watcher (живые субтитры) → по завершении `Recognizer::decode`
-(sherpa-onnx, offline CTC/Transducer) → `paste::insert_text` (Accessibility +
-безусловная запись в буфер) → запись сохраняется в SQLite → события уходят во
-все окна (`main` и `overlay`) через Tauri event system.
+Data flow while dictating: hotkey → `AudioEngine::start` (the cpal stream is
+already open for the app's entire lifetime; start/stop just toggles whether
+samples get pushed into the buffer) → in parallel, a VAD watcher (auto-stop),
+a level watcher (waveform in the UI), and a partial-transcript watcher (live
+captions) all run → on completion, `Recognizer::decode` (sherpa-onnx, offline
+CTC/Transducer/Whisper) → `paste::insert_text` (Accessibility + unconditional
+clipboard write) → the entry is saved to SQLite → events fan out to every
+window (`main` and `overlay`) through the Tauri event system.
 
-Подробнее — в [CONTRIBUTING.md](CONTRIBUTING.md).
+More detail in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Разработка
+## Development
 
 ```bash
 npm install
 npm run tauri dev
 ```
 
-Перед PR:
+Before opening a PR:
 
 ```bash
 cd src-tauri && cargo build && cargo test --lib
 cd .. && npm run build
 ```
 
-CI (`.github/workflows/ci.yml`) гоняет то же самое на push и PR. Релизы
-(`.github/workflows/release.yml`) собираются по тегу `vX.Y.Z` под macOS
-(universal), Windows и Linux через `tauri-action` и публикуются черновиком
-GitHub Release. Подробности — в [CONTRIBUTING.md](CONTRIBUTING.md).
+CI (`.github/workflows/ci.yml`) runs the same checks on push and PR. Releases
+(`.github/workflows/release.yml`) build on tag `vX.Y.Z` for macOS (universal),
+Windows, and Linux via `tauri-action`, publishing a draft GitHub Release. More
+detail in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Частые вопросы
+## FAQ
 
-**Почему нет живого потокового распознавания, как в Siri?**
-Это потребовало бы отдельного класса streaming/online-моделей — GigaAM в
-доступном виде экспортирован как offline-модель. Вместо этого используется
-честный компромисс: модель декодирует в ×12 быстрее реального времени, поэтому
-периодический передекод растущего буфера (каждые ~900мс) выглядит как живые
-субтитры, не требуя другой архитектуры.
+**Why isn't there live streaming recognition like Siri?**
+That would need a dedicated class of streaming/online models — the models
+available here are exported as offline models. Instead, Dikta uses an honest
+compromise: since decoding runs several times faster than realtime, a
+periodic re-decode of the growing buffer (every ~900ms) reads as live
+captions without needing a different architecture.
 
-**Можно ли использовать не русский язык?**
-Каталог по умолчанию — только GigaAM (русский). Можно подключить любую другую
-sherpa-onnx-совместимую offline CTC/Transducer модель через Hugging Face repo id
-в Настройках, включая модели для других языков.
+**Can I use a language other than Russian?**
+The default catalog includes Whisper (multilingual, ~99 languages) alongside
+GigaAM (Russian-only, but noticeably more accurate on Russian). You can also
+add any other sherpa-onnx-compatible offline CTC/Transducer model via a
+Hugging Face repo id in Settings.
 
-**Приложение не появляется в Dock — как его открыть?**
-Оно намеренно живёт только в трее (иконка в строке меню на macOS / трее на
-Windows). Клик по иконке или пункт «Открыть Дикту» в её меню открывают окно.
+**The app doesn't show up in the Dock — how do I open it?**
+It's intentionally tray-only (menu bar icon on macOS / tray on Windows).
+Click the icon, or use "Open Dikta" from its menu.
 
-**Push-to-talk не реагирует на нажатие.**
-Проверьте, что выбранная комбинация физически есть на клавиатуре (например,
-`F13` есть далеко не на всех клавиатурах) и не занята другим приложением/ОС.
+**Push-to-talk doesn't respond to the hotkey.**
+Check that the chosen combination physically exists on your keyboard (`F13`,
+for instance, is missing on most laptop keyboards) and isn't already claimed
+by another app or the OS.
 
-## Лицензия
+## License
 
-Код — [MIT](LICENSE). Модель GigaAM лицензирована отдельно и некоммерчески —
-подробности в разделе [«Модели распознавания»](#модели-распознавания) выше.
+Code is [MIT](LICENSE). Bundled/downloadable ASR models carry their own
+licenses independent of the app's — GigaAM in particular is licensed
+non-commercially (GigaAM License NC, included as a PDF inside its download).
+Models are fetched at runtime, not distributed with the code.

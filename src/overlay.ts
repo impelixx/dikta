@@ -1,6 +1,28 @@
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
+// Оверлей — отдельное окно/бандл, поэтому у него свой маленький словарь;
+// язык читается из того же localStorage-ключа, что и в главном окне.
+type Lang = "ru" | "en";
+const lang: Lang = (localStorage.getItem("dikta_lang") as Lang) || "ru";
+const STRINGS: Record<Lang, Record<string, string>> = {
+  ru: {
+    listening: "Слушаю…",
+    recognizing: "Распознаю…",
+    autoInserted: "✓",
+    copied: "⧉ скопировано:",
+    noModel: "Модель не выбрана — откройте Настройки",
+  },
+  en: {
+    listening: "Listening…",
+    recognizing: "Recognizing…",
+    autoInserted: "✓",
+    copied: "⧉ copied:",
+    noModel: "No model selected — open Settings",
+  },
+};
+const s = STRINGS[lang];
+
 const win = getCurrentWindow();
 const pill = document.getElementById("pill")!;
 const text = document.getElementById("pill-text")!;
@@ -20,7 +42,7 @@ function drawWave() {
   waveCtx.clearRect(0, 0, w, h);
   if (waving) {
     const barW = w / waveHistory.length;
-    waveCtx.fillStyle = "#f4ead9";
+    waveCtx.fillStyle = "#f6eee2";
     waveHistory.forEach((level, i) => {
       const barH = Math.max(2, level * h * 0.9);
       waveCtx.fillRect(i * barW + 1, (h - barH) / 2, barW - 2, barH);
@@ -42,7 +64,7 @@ listen("recording-started", () => {
   window.clearTimeout(hideTimer);
   waving = true;
   setState("listening");
-  text.textContent = "Слушаю…";
+  text.textContent = s.listening;
   win.show();
 });
 
@@ -59,18 +81,18 @@ listen("recording-stopped", () => {
   waving = false;
   waveHistory = waveHistory.map(() => 0);
   setState("processing");
-  text.textContent = "Распознаю…";
+  text.textContent = s.recognizing;
 });
 
 listen<{ text: string; outcome: string }>("transcription-done", (event) => {
   setState("done");
   const snippet = event.payload.text.length > 40 ? event.payload.text.slice(0, 40) + "…" : event.payload.text;
-  text.textContent = event.payload.outcome === "AutoInserted" ? `✓ ${snippet}` : `⧉ скопировано: ${snippet}`;
+  text.textContent = event.payload.outcome === "AutoInserted" ? `${s.autoInserted} ${snippet}` : `${s.copied} ${snippet}`;
   scheduleHide(1600);
 });
 
 listen("no-model-active", () => {
   setState("warn");
-  text.textContent = "Модель не выбрана — откройте Настройки";
+  text.textContent = s.noModel;
   scheduleHide(2200);
 });

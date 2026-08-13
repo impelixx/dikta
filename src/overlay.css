@@ -22,7 +22,7 @@ body {
   background: rgba(44, 33, 22, 0.88);
   backdrop-filter: blur(6px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  color: #f4ead9;
+  color: #f6eee2;
   font-family: "Lora", Georgia, serif;
   font-size: 13.5px;
   white-space: nowrap;
@@ -32,23 +32,23 @@ body {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #c1694f;
+  background: #c9795f;
   flex-shrink: 0;
   animation: pulse 1.1s ease-in-out infinite;
 }
 
 .pill.processing .dot {
-  background: #dfa98f;
+  background: #e5b7a0;
   animation: spin 0.9s linear infinite;
 }
 
 .pill.done .dot {
-  background: #7a9471;
+  background: #82a075;
   animation: none;
 }
 
 .pill.warn .dot {
-  background: #c98a3a;
+  background: #cb9550;
   animation: none;
 }
 

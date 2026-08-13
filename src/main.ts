@@ -34,6 +34,253 @@ function formatAccelerator(accel: string): string {
   return PLATFORM === "mac" ? parts.join("") : parts.join("+");
 }
 
+// ---------- i18n ----------
+
+type Lang = "ru" | "en";
+
+const TRANSLATIONS: Record<Lang, Record<string, string>> = {
+  ru: {
+    "nav.home": "Главная",
+    "nav.history": "История",
+    "nav.stats": "Статистика",
+    "nav.settings": "Настройки",
+    "home.title": "Дикта",
+    "home.subtitle": "Локальное распознавание русской речи",
+    "home.ready": "Готова слушать",
+    "home.readyHint": "— настройте хоткеи во вкладке «Настройки»",
+    "home.lastLabel": "Последняя запись",
+    "home.lastEmpty": "Пока ничего не распознано.",
+    "home.listening": "Слушаю…",
+    "home.recognizing": "Распознаю…",
+    "home.modeToggle": "режим: toggle — нажмите хоткей ещё раз",
+    "home.modePush": "режим: push-to-talk — держите клавишу",
+    "home.autoInserted": "✓ вставлено автоматически",
+    "home.copiedToClipboard": "ℹ скопировано в буфер — вставьте вручную (Cmd/Ctrl+V)",
+    "home.noModel": "Модель не выбрана",
+    "home.noModelHint": "откройте «Настройки» → «Модель распознавания» и скачайте одну из моделей",
+    "history.title": "История",
+    "history.subtitle": "Поиск, копирование, удаление",
+    "history.searchPlaceholder": "Поиск по тексту…",
+    "history.empty": "Ничего не найдено",
+    "history.copy": "Копировать",
+    "history.delete": "Удалить",
+    "history.words": "слов",
+    "stats.title": "Статистика",
+    "stats.subtitle": "Активность и качество сигнала",
+    "stats.timeChart": "Время диктовки по дням",
+    "stats.qualityChart": "Качество сигнала (RMS-прокси, не модельная confidence)",
+    "stats.todayTime": "Сегодня наговорено",
+    "stats.weekTime": "За неделю",
+    "stats.wordsToday": "Слов сегодня",
+    "stats.sessionsAll": "Сессий всего",
+    "stats.empty": "Пока нет данных",
+    "stats.minutesSeries": "минут",
+    "stats.qualitySeries": "качество сигнала",
+    "settings.title": "Настройки",
+    "settings.subtitle": "Хоткеи, голос, данные",
+    "settings.hotkeys": "Хоткеи",
+    "settings.pushToTalk": "Push-to-talk",
+    "settings.pushToTalkDesc": "Держать — говорить, отпустить — распознать",
+    "settings.toggle": "Toggle",
+    "settings.toggleDesc": "Нажать — начать, нажать ещё раз — остановить",
+    "settings.pressCombo": "Нажмите комбинацию…",
+    "settings.voice": "Голос",
+    "settings.sensitivity": "Чувствительность автостопа",
+    "settings.sensitivityDesc": "Насколько тихо должно быть, чтобы запись остановилась сама",
+    "settings.hangover": "Пауза до автостопа",
+    "settings.hangoverDesc": "Сколько тишины ждать перед остановкой — короче для команд, длиннее для связной речи",
+    "settings.autostopPush": "Автостоп в push-to-talk",
+    "settings.autostopPushDesc": "Дополнительно к отпусканию клавиши",
+    "settings.autostopToggle": "Автостоп в toggle",
+    "settings.autostopToggleDesc": "Не ждать повторного нажатия",
+    "settings.textInsertion": "Вставка текста",
+    "settings.autopaste": "Автовставка в текущее поле",
+    "settings.autopasteDesc": "Если недоступна — текст уйдёт в буфер обмена",
+    "settings.inputDevice": "Устройство ввода",
+    "settings.microphone": "Микрофон",
+    "settings.microphoneDesc": "Какое устройство слушать",
+    "settings.systemDefault": "Системное по умолчанию",
+    "settings.theme": "Тема",
+    "settings.themeLabel": "Цветовая гамма",
+    "settings.themeDesc": "Крем и терракота, мятная или лавандовая",
+    "settings.model": "Модель распознавания",
+    "settings.customModelHint": "Добавить свою sherpa-onnx-совместимую модель с Hugging Face",
+    "settings.customModelPlaceholder": "например: Smirnov75/GigaAM-v3-sherpa-onnx",
+    "settings.findFiles": "Найти файлы",
+    "sensitivity.whisper": "Шёпот — тишина",
+    "sensitivity.quietRoom": "Тихая комната",
+    "sensitivity.normal": "Обычный разговор",
+    "sensitivity.cafe": "Шумное кафе",
+    "sensitivity.openSpace": "Открытый опенспейс",
+    "sensitivity.construction": "Стройка",
+    "models.active": "Активна",
+    "models.use": "Использовать",
+    "models.download": "Скачать",
+    "models.downloading": "Скачивается…",
+    "models.retryError": "Ошибка — повторить",
+    "models.remove": "Удалить",
+    "models.punctuation": "пунктуация",
+    "models.noPunctuation": "без пунктуации",
+    "models.measuredNote": "Замерено локально, на вашей машине может отличаться",
+    "models.speedFactor": "реального времени",
+    "models.loadTime": "загрузка",
+    "hf.searching": "Ищу файлы…",
+    "hf.searchError": "Не удалось получить список файлов",
+    "hf.modelType": "Тип модели",
+    "hf.ctcOneFile": "CTC (один файл)",
+    "hf.transducerThreeFiles": "Transducer (3 файла)",
+    "hf.addAndDownload": "Добавить и скачать",
+    "hf.adding": "Добавляю…",
+    "hf.tokens": "Файл токенов",
+    "hf.model": "Модель (CTC)",
+    "hf.encoder": "Encoder",
+    "hf.decoder": "Decoder",
+    "hf.joiner": "Joiner",
+  },
+  en: {
+    "nav.home": "Home",
+    "nav.history": "History",
+    "nav.stats": "Stats",
+    "nav.settings": "Settings",
+    "home.title": "Dikta",
+    "home.subtitle": "Local Russian speech recognition",
+    "home.ready": "Ready to listen",
+    "home.readyHint": "— set up hotkeys in the Settings tab",
+    "home.lastLabel": "Last transcription",
+    "home.lastEmpty": "Nothing recognized yet.",
+    "home.listening": "Listening…",
+    "home.recognizing": "Recognizing…",
+    "home.modeToggle": "mode: toggle — press the hotkey again",
+    "home.modePush": "mode: push-to-talk — hold the key",
+    "home.autoInserted": "✓ inserted automatically",
+    "home.copiedToClipboard": "ℹ copied to clipboard — paste manually (Cmd/Ctrl+V)",
+    "home.noModel": "No model selected",
+    "home.noModelHint": "open Settings → \"Recognition model\" and download one",
+    "history.title": "History",
+    "history.subtitle": "Search, copy, delete",
+    "history.searchPlaceholder": "Search text…",
+    "history.empty": "Nothing found",
+    "history.copy": "Copy",
+    "history.delete": "Delete",
+    "history.words": "words",
+    "stats.title": "Stats",
+    "stats.subtitle": "Activity and signal quality",
+    "stats.timeChart": "Dictation time by day",
+    "stats.qualityChart": "Signal quality (RMS proxy, not model confidence)",
+    "stats.todayTime": "Dictated today",
+    "stats.weekTime": "This week",
+    "stats.wordsToday": "Words today",
+    "stats.sessionsAll": "Sessions total",
+    "stats.empty": "No data yet",
+    "stats.minutesSeries": "minutes",
+    "stats.qualitySeries": "signal quality",
+    "settings.title": "Settings",
+    "settings.subtitle": "Hotkeys, voice, data",
+    "settings.hotkeys": "Hotkeys",
+    "settings.pushToTalk": "Push-to-talk",
+    "settings.pushToTalkDesc": "Hold to speak, release to recognize",
+    "settings.toggle": "Toggle",
+    "settings.toggleDesc": "Press to start, press again to stop",
+    "settings.pressCombo": "Press a combination…",
+    "settings.voice": "Voice",
+    "settings.sensitivity": "Auto-stop sensitivity",
+    "settings.sensitivityDesc": "How quiet it needs to get for recording to stop itself",
+    "settings.hangover": "Pause before auto-stop",
+    "settings.hangoverDesc": "How long to wait in silence before stopping — shorter for commands, longer for connected speech",
+    "settings.autostopPush": "Auto-stop in push-to-talk",
+    "settings.autostopPushDesc": "In addition to releasing the key",
+    "settings.autostopToggle": "Auto-stop in toggle",
+    "settings.autostopToggleDesc": "Don't wait for a second press",
+    "settings.textInsertion": "Text insertion",
+    "settings.autopaste": "Auto-paste into the focused field",
+    "settings.autopasteDesc": "If unavailable — text goes to the clipboard",
+    "settings.inputDevice": "Input device",
+    "settings.microphone": "Microphone",
+    "settings.microphoneDesc": "Which device to listen to",
+    "settings.systemDefault": "System default",
+    "settings.theme": "Theme",
+    "settings.themeLabel": "Color palette",
+    "settings.themeDesc": "Cream & terracotta, mint, or lavender",
+    "settings.model": "Recognition model",
+    "settings.customModelHint": "Add your own sherpa-onnx-compatible model from Hugging Face",
+    "settings.customModelPlaceholder": "e.g. Smirnov75/GigaAM-v3-sherpa-onnx",
+    "settings.findFiles": "Find files",
+    "sensitivity.whisper": "Whisper-quiet",
+    "sensitivity.quietRoom": "Quiet room",
+    "sensitivity.normal": "Normal conversation",
+    "sensitivity.cafe": "Noisy café",
+    "sensitivity.openSpace": "Open-plan office",
+    "sensitivity.construction": "Construction site",
+    "models.active": "Active",
+    "models.use": "Use",
+    "models.download": "Download",
+    "models.downloading": "Downloading…",
+    "models.retryError": "Error — retry",
+    "models.remove": "Remove",
+    "models.punctuation": "punctuation",
+    "models.noPunctuation": "no punctuation",
+    "models.measuredNote": "Measured locally, may differ on your machine",
+    "models.speedFactor": "realtime",
+    "models.loadTime": "load",
+    "hf.searching": "Looking up files…",
+    "hf.searchError": "Couldn't fetch the file list",
+    "hf.modelType": "Model type",
+    "hf.ctcOneFile": "CTC (single file)",
+    "hf.transducerThreeFiles": "Transducer (3 files)",
+    "hf.addAndDownload": "Add and download",
+    "hf.adding": "Adding…",
+    "hf.tokens": "Tokens file",
+    "hf.model": "Model (CTC)",
+    "hf.encoder": "Encoder",
+    "hf.decoder": "Decoder",
+    "hf.joiner": "Joiner",
+  },
+};
+
+let currentLang: Lang = (localStorage.getItem("dikta_lang") as Lang) || "ru";
+
+function t(key: string): string {
+  return TRANSLATIONS[currentLang][key] ?? TRANSLATIONS.ru[key] ?? key;
+}
+
+function applyStaticI18n() {
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n!);
+  });
+  document.querySelectorAll<HTMLElement>("[data-i18n-title]").forEach((el) => {
+    el.title = t(el.dataset.i18nTitle!);
+  });
+  document.querySelectorAll<HTMLInputElement>("[data-i18n-placeholder]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder!);
+  });
+  const toggle = document.getElementById("lang-toggle")!;
+  toggle.textContent = currentLang.toUpperCase();
+}
+
+async function setLanguage(lang: Lang) {
+  currentLang = lang;
+  localStorage.setItem("dikta_lang", lang);
+  applyStaticI18n();
+  // Динамически отрисованные куски нужно перерисовать явно — они не в DOM
+  // на момент applyStaticI18n, их разметка генерируется через innerHTML.
+  if (currentSettings) {
+    updateSensitivityLabel(currentSettings.vad_sensitivity);
+    document.getElementById("silence-hangover-label")!.textContent = formatSeconds(currentSettings.silence_hangover_ms);
+    await loadInputDevices();
+    await loadModels();
+  }
+  const activeView = document.querySelector<HTMLElement>(".panel.active")?.id;
+  if (activeView === "view-history") loadHistory((document.getElementById("history-search") as HTMLInputElement).value);
+  if (activeView === "view-stats") loadStats();
+}
+
+document.getElementById("lang-toggle")!.addEventListener("click", () => {
+  setLanguage(currentLang === "ru" ? "en" : "ru");
+});
+
+applyStaticI18n();
+
 // ---------- Типы, зеркалящие Rust-структуры ----------
 
 interface AppSettings {
@@ -125,7 +372,7 @@ function drawWave() {
   const h = waveCanvas.height;
   waveCtx.clearRect(0, 0, w, h);
   const barW = w / waveHistory.length;
-  waveCtx.fillStyle = isRecording ? "#c1694f" : "#e3d8c3";
+  waveCtx.fillStyle = isRecording ? "#c9795f" : "#e8dcc5";
   waveHistory.forEach((level, i) => {
     const barH = Math.max(3, level * h * 0.9);
     waveCtx.fillRect(i * barW + 1, (h - barH) / 2, barW - 2, barH);
@@ -147,15 +394,15 @@ const statusHint = document.getElementById("status-hint")!;
 const lastText = document.getElementById("last-text")!;
 
 listen("no-model-active", () => {
-  statusHeadline.textContent = "Модель не выбрана";
-  statusHint.textContent = "откройте «Настройки» → «Модель распознавания» и скачайте одну из моделей";
+  statusHeadline.textContent = t("home.noModel");
+  statusHint.textContent = t("home.noModelHint");
 });
 
 listen<boolean>("recording-started", (event) => {
   isRecording = true;
   recDot.classList.add("live");
-  statusHeadline.textContent = "Слушаю…";
-  statusHint.textContent = event.payload ? "режим: toggle — нажмите хоткей ещё раз" : "режим: push-to-talk — держите клавишу";
+  statusHeadline.textContent = t("home.listening");
+  statusHint.textContent = event.payload ? t("home.modeToggle") : t("home.modePush");
   lastText.textContent = "…";
 });
 
@@ -166,7 +413,7 @@ listen<string>("partial-transcript", (event) => {
 listen("recording-stopped", () => {
   isRecording = false;
   recDot.classList.remove("live");
-  statusHeadline.textContent = "Распознаю…";
+  statusHeadline.textContent = t("home.recognizing");
   waveHistory = waveHistory.map(() => 0);
 });
 
@@ -175,11 +422,8 @@ listen<number>("audio-level", (event) => {
 });
 
 listen<{ text: string; outcome: string }>("transcription-done", (event) => {
-  statusHeadline.textContent = "Готова слушать";
-  statusHint.textContent =
-    event.payload.outcome === "AutoInserted"
-      ? "✓ вставлено автоматически"
-      : "ℹ скопировано в буфер — вставьте вручную (Cmd/Ctrl+V)";
+  statusHeadline.textContent = t("home.ready");
+  statusHint.textContent = event.payload.outcome === "AutoInserted" ? t("home.autoInserted") : t("home.copiedToClipboard");
   lastText.textContent = event.payload.text;
 });
 
@@ -195,6 +439,10 @@ async function loadSettings() {
   await loadModels();
 }
 
+function formatSeconds(ms: number): string {
+  return `${(ms / 1000).toFixed(1)}${currentLang === "ru" ? "с" : "s"}`;
+}
+
 function renderSettings() {
   (document.getElementById("hotkey-push") as HTMLButtonElement).textContent = formatAccelerator(currentSettings.hotkey_push_to_talk);
   (document.getElementById("hotkey-toggle") as HTMLButtonElement).textContent = formatAccelerator(currentSettings.hotkey_toggle);
@@ -203,7 +451,7 @@ function renderSettings() {
   updateSensitivityLabel(currentSettings.vad_sensitivity);
   const hangoverSlider = document.getElementById("silence-hangover") as HTMLInputElement;
   hangoverSlider.value = String(currentSettings.silence_hangover_ms);
-  document.getElementById("silence-hangover-label")!.textContent = `${(currentSettings.silence_hangover_ms / 1000).toFixed(1)}с`;
+  document.getElementById("silence-hangover-label")!.textContent = formatSeconds(currentSettings.silence_hangover_ms);
   (document.getElementById("autostop-push") as HTMLInputElement).checked = currentSettings.autostop_push_to_talk;
   (document.getElementById("autostop-toggle") as HTMLInputElement).checked = currentSettings.autostop_toggle;
   (document.getElementById("autopaste") as HTMLInputElement).checked = currentSettings.autopaste_enabled;
@@ -235,7 +483,7 @@ async function loadInputDevices() {
   select.innerHTML = "";
   const defaultOpt = document.createElement("option");
   defaultOpt.value = "";
-  defaultOpt.textContent = "Системное по умолчанию";
+  defaultOpt.textContent = t("settings.systemDefault");
   select.appendChild(defaultOpt);
   for (const name of devices) {
     const opt = document.createElement("option");
@@ -260,7 +508,7 @@ async function loadModels() {
   for (const m of models) {
     const el = document.createElement("div");
     el.className = "model-item" + (m.active ? " active" : "");
-    const sizeLabel = m.size_mb ? `${m.size_mb}МБ` : "";
+    const sizeLabel = m.size_mb ? `${m.size_mb}${currentLang === "ru" ? "МБ" : "MB"}` : "";
     const desc = m.source === "Custom" ? `HF: ${m.repo_id}` : m.description ?? "";
     const kindLabel = m.kind === "Ctc" ? "CTC" : m.kind === "Transducer" ? "Transducer" : "Whisper";
 
@@ -271,27 +519,27 @@ async function loadModels() {
     if (m.source === "Builtin") {
       badges.push(
         m.punctuation
-          ? `<span class="badge badge-good">пунктуация</span>`
-          : `<span class="badge">без пунктуации</span>`
+          ? `<span class="badge badge-good">${t("models.punctuation")}</span>`
+          : `<span class="badge">${t("models.noPunctuation")}</span>`
       );
     }
     if (m.measured_rtf) {
       const speedFactor = (1 / m.measured_rtf).toFixed(0);
-      badges.push(`<span class="badge" title="Замерено локально, на вашей машине может отличаться">⚡ ×${speedFactor} реального времени</span>`);
+      badges.push(`<span class="badge" title="${t("models.measuredNote")}">⚡ ×${speedFactor} ${t("models.speedFactor")}</span>`);
     }
     if (m.measured_load_ms) {
-      badges.push(`<span class="badge">загрузка ~${(m.measured_load_ms / 1000).toFixed(1)}с</span>`);
+      badges.push(`<span class="badge">${t("models.loadTime")} ~${formatSeconds(m.measured_load_ms)}</span>`);
     }
 
     let actionHtml = "";
     if (m.active) {
-      actionHtml = `<span class="small-btn primary">Активна</span>`;
+      actionHtml = `<span class="small-btn primary">${t("models.active")}</span>`;
     } else if (m.downloaded) {
-      actionHtml = `<button class="small-btn" data-action="activate">Использовать</button>`;
+      actionHtml = `<button class="small-btn" data-action="activate">${t("models.use")}</button>`;
     } else {
-      actionHtml = `<button class="small-btn" data-action="download">Скачать</button>`;
+      actionHtml = `<button class="small-btn" data-action="download">${t("models.download")}</button>`;
     }
-    const removeBtn = m.source === "Custom" ? `<button class="icon-btn" data-action="remove" title="Удалить">✕</button>` : "";
+    const removeBtn = m.source === "Custom" ? `<button class="icon-btn" data-action="remove" title="${t("models.remove")}">✕</button>` : "";
 
     el.innerHTML = `
       <div class="info">
@@ -307,7 +555,7 @@ async function loadModels() {
 
     el.querySelector('[data-action="download"]')?.addEventListener("click", async (ev) => {
       const btn = ev.target as HTMLButtonElement;
-      btn.textContent = "Скачивается…";
+      btn.textContent = t("models.downloading");
       btn.setAttribute("disabled", "true");
       const bar = el.querySelector(`[data-progress-for="${m.id}"]`) as HTMLElement;
       bar.style.display = "block";
@@ -315,7 +563,7 @@ async function loadModels() {
         await invoke("download_model", { id: m.id });
         await loadModels();
       } catch (err) {
-        btn.textContent = "Ошибка — повторить";
+        btn.textContent = t("models.retryError");
         btn.removeAttribute("disabled");
         console.error(err);
       }
@@ -343,15 +591,11 @@ listen<{ id: string; downloaded_bytes: number; total_bytes: number }>("model-dow
 
 // ---------- Добавление своей модели с Hugging Face ----------
 
-const ROLE_LABELS: Record<string, string> = {
-  tokens: "Файл токенов",
-  model: "Модель (CTC)",
-  encoder: "Encoder",
-  decoder: "Decoder",
-  joiner: "Joiner",
-};
+function roleLabel(role: string): string {
+  return t(`hf.${role}`);
+}
 
-function guessRole(filename: string): keyof typeof ROLE_LABELS | null {
+function guessRole(filename: string): "tokens" | "model" | "encoder" | "decoder" | "joiner" | null {
   const f = filename.toLowerCase();
   if (f.endsWith(".txt") && f.includes("token")) return "tokens";
   if (!f.endsWith(".onnx")) return null;
@@ -366,12 +610,12 @@ document.getElementById("hf-list-btn")!.addEventListener("click", async () => {
   const repoId = (document.getElementById("hf-repo-id") as HTMLInputElement).value.trim();
   const container = document.getElementById("hf-file-mapping")!;
   if (!repoId) return;
-  container.innerHTML = `<div class="empty-state">Ищу файлы…</div>`;
+  container.innerHTML = `<div class="empty-state">${t("hf.searching")}</div>`;
   let files: string[];
   try {
     files = await invoke<string[]>("hf_list_files", { repoId });
   } catch (err) {
-    container.innerHTML = `<div class="empty-state">Не удалось получить список файлов: ${escapeHtml(String(err))}</div>`;
+    container.innerHTML = `<div class="empty-state">${t("hf.searchError")}: ${escapeHtml(String(err))}</div>`;
     return;
   }
 
@@ -380,14 +624,14 @@ document.getElementById("hf-list-btn")!.addEventListener("click", async () => {
 
   container.innerHTML = `
     <div class="field-row" style="border-bottom:none; padding-top:4px;">
-      <div class="field-label">Тип модели</div>
+      <div class="field-label">${t("hf.modelType")}</div>
       <select id="hf-kind" class="select-field" style="min-width:160px;">
-        <option value="Ctc" ${kind === "Ctc" ? "selected" : ""}>CTC (один файл)</option>
-        <option value="Transducer" ${kind === "Transducer" ? "selected" : ""}>Transducer (3 файла)</option>
+        <option value="Ctc" ${kind === "Ctc" ? "selected" : ""}>${t("hf.ctcOneFile")}</option>
+        <option value="Transducer" ${kind === "Transducer" ? "selected" : ""}>${t("hf.transducerThreeFiles")}</option>
       </select>
     </div>
     <div id="hf-roles"></div>
-    <button class="small-btn primary" id="hf-add-btn" style="margin-top:10px;">Добавить и скачать</button>
+    <button class="small-btn primary" id="hf-add-btn" style="margin-top:10px;">${t("hf.addAndDownload")}</button>
   `;
 
   function renderRoleRows(activeKind: "Ctc" | "Transducer") {
@@ -397,7 +641,7 @@ document.getElementById("hf-list-btn")!.addEventListener("click", async () => {
       .map((role) => {
         const guessed = files.find((f) => guessRole(f) === role) ?? "";
         const options = files.map((f) => `<option value="${escapeHtml(f)}" ${f === guessed ? "selected" : ""}>${escapeHtml(f)}</option>`).join("");
-        return `<div class="hf-file-row"><span style="min-width:110px;">${ROLE_LABELS[role]}</span><select data-role="${role}">${options}</select></div>`;
+        return `<div class="hf-file-row"><span style="min-width:110px;">${roleLabel(role)}</span><select data-role="${role}">${options}</select></div>`;
       })
       .join("");
   }
@@ -414,7 +658,7 @@ document.getElementById("hf-list-btn")!.addEventListener("click", async () => {
     roleSelects.forEach((sel) => (values[sel.dataset.role!] = sel.value));
 
     const addBtn = document.getElementById("hf-add-btn") as HTMLButtonElement;
-    addBtn.textContent = "Добавляю…";
+    addBtn.textContent = t("hf.adding");
     addBtn.setAttribute("disabled", "true");
     try {
       const id = await invoke<string>("add_custom_model", {
@@ -431,16 +675,32 @@ document.getElementById("hf-list-btn")!.addEventListener("click", async () => {
       (document.getElementById("hf-repo-id") as HTMLInputElement).value = "";
       await loadModels();
     } catch (err) {
-      addBtn.textContent = "Ошибка — повторить";
+      addBtn.textContent = t("models.retryError");
       addBtn.removeAttribute("disabled");
       console.error(err);
     }
   });
 });
 
-async function updateSensitivityLabel(value: number) {
-  const label = await invoke<string>("sensitivity_label", { value });
-  document.getElementById("vad-sensitivity-label")!.textContent = label;
+const SENSITIVITY_KEYS = [
+  "sensitivity.whisper",
+  "sensitivity.quietRoom",
+  "sensitivity.normal",
+  "sensitivity.cafe",
+  "sensitivity.openSpace",
+  "sensitivity.construction",
+] as const;
+
+/** Игривые подписи чувствительности считаются на фронте (не через Rust-команду),
+ * чтобы переключение языка не требовало похода в бэкенд за переводом. */
+function sensitivityLabel(value: number): string {
+  const pct = Math.round(value * 100);
+  const idx = pct <= 15 ? 0 : pct <= 35 ? 1 : pct <= 55 ? 2 : pct <= 75 ? 3 : pct <= 90 ? 4 : 5;
+  return t(SENSITIVITY_KEYS[idx]);
+}
+
+function updateSensitivityLabel(value: number) {
+  document.getElementById("vad-sensitivity-label")!.textContent = sensitivityLabel(value);
 }
 
 async function setSetting(key: string, value: string) {
@@ -450,13 +710,13 @@ async function setSetting(key: string, value: string) {
 document.getElementById("vad-sensitivity")!.addEventListener("input", async (e) => {
   const raw = Number((e.target as HTMLInputElement).value);
   const value = raw / 100;
-  await updateSensitivityLabel(value);
+  updateSensitivityLabel(value);
   await setSetting("vad_sensitivity", String(value));
 });
 
 document.getElementById("silence-hangover")!.addEventListener("input", async (e) => {
   const ms = Number((e.target as HTMLInputElement).value);
-  document.getElementById("silence-hangover-label")!.textContent = `${(ms / 1000).toFixed(1)}с`;
+  document.getElementById("silence-hangover-label")!.textContent = formatSeconds(ms);
   await setSetting("silence_hangover_ms", String(ms));
 });
 
@@ -498,7 +758,7 @@ function bindHotkeyCapture(buttonId: string, settingsKey: keyof AppSettings) {
   btn.addEventListener("click", () => {
     btn.classList.add("listening");
     const original = btn.textContent;
-    btn.textContent = "Нажмите комбинацию…";
+    btn.textContent = t("settings.pressCombo");
 
     const onKeyDown = async (e: KeyboardEvent) => {
       e.preventDefault();
@@ -525,13 +785,14 @@ bindHotkeyCapture("hotkey-toggle", "hotkey_toggle");
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const locale = currentLang === "ru" ? "ru-RU" : "en-US";
+  return d.toLocaleString(locale, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 function qualityColor(q: number): string {
-  if (q > 0.6) return "#7a9471";
-  if (q > 0.3) return "#c98a3a";
-  return "#c1694f";
+  if (q > 0.6) return "#82a075";
+  if (q > 0.3) return "#cb9550";
+  return "#c9795f";
 }
 
 async function loadHistory(query: string) {
@@ -539,7 +800,7 @@ async function loadHistory(query: string) {
   const list = document.getElementById("history-list")!;
   list.innerHTML = "";
   if (items.length === 0) {
-    list.innerHTML = `<div class="empty-state">Ничего не найдено</div>`;
+    list.innerHTML = `<div class="empty-state">${t("history.empty")}</div>`;
     return;
   }
   for (const item of items) {
@@ -551,13 +812,13 @@ async function loadHistory(query: string) {
         <div class="meta">
           <span class="quality-dot" style="background:${qualityColor(item.confidence_avg)}"></span>
           <span>${formatDate(item.created_at)}</span>
-          <span>${(item.duration_ms / 1000).toFixed(1)}с</span>
-          <span>${item.word_count} слов</span>
+          <span>${formatSeconds(item.duration_ms)}</span>
+          <span>${item.word_count} ${t("history.words")}</span>
         </div>
       </div>
       <div class="actions">
-        <button class="icon-btn" data-action="copy" title="Копировать">⧉</button>
-        <button class="icon-btn" data-action="delete" title="Удалить">✕</button>
+        <button class="icon-btn" data-action="copy" title="${t("history.copy")}">⧉</button>
+        <button class="icon-btn" data-action="delete" title="${t("history.delete")}">✕</button>
       </div>
     `;
     el.querySelector('[data-action="copy"]')!.addEventListener("click", () => {
@@ -590,17 +851,17 @@ function formatDuration(ms: number): string {
   const totalSec = Math.round(ms / 1000);
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
-  return `${m}м ${s}с`;
+  return currentLang === "ru" ? `${m}м ${s}с` : `${m}m ${s}s`;
 }
 
 async function loadStats() {
   const overall = await invoke<OverallStats>("get_overall_stats");
   const grid = document.getElementById("stat-grid")!;
   grid.innerHTML = `
-    <div class="stat-card"><div class="value">${formatDuration(overall.total_ms_today)}</div><div class="label">Сегодня наговорено</div></div>
-    <div class="stat-card"><div class="value">${formatDuration(overall.total_ms_week)}</div><div class="label">За неделю</div></div>
-    <div class="stat-card"><div class="value">${overall.words_today}</div><div class="label">Слов сегодня</div></div>
-    <div class="stat-card"><div class="value">${overall.sessions_all}</div><div class="label">Сессий всего</div></div>
+    <div class="stat-card"><div class="value">${formatDuration(overall.total_ms_today)}</div><div class="label">${t("stats.todayTime")}</div></div>
+    <div class="stat-card"><div class="value">${formatDuration(overall.total_ms_week)}</div><div class="label">${t("stats.weekTime")}</div></div>
+    <div class="stat-card"><div class="value">${overall.words_today}</div><div class="label">${t("stats.wordsToday")}</div></div>
+    <div class="stat-card"><div class="value">${overall.sessions_all}</div><div class="label">${t("stats.sessionsAll")}</div></div>
   `;
 
   const daily = await invoke<DayStat[]>("get_daily_stats", { days: 30 });
@@ -612,7 +873,7 @@ function renderTimeChart(daily: DayStat[]) {
   const el = document.getElementById("chart-time")!;
   el.innerHTML = "";
   if (daily.length === 0) {
-    el.innerHTML = `<div class="empty-state">Пока нет данных</div>`;
+    el.innerHTML = `<div class="empty-state">${t("stats.empty")}</div>`;
     return;
   }
   const xs = daily.map((d) => Date.parse(d.day) / 1000);
@@ -621,7 +882,7 @@ function renderTimeChart(daily: DayStat[]) {
     {
       width: el.clientWidth || 640,
       height: 200,
-      series: [{}, { label: "минут", stroke: "#c1694f", fill: "rgba(193,105,79,0.15)", width: 2 }],
+      series: [{}, { label: t("stats.minutesSeries"), stroke: "#c9795f", fill: "rgba(201,121,95,0.15)", width: 2 }],
       axes: [{ stroke: "#6b5c4e" }, { stroke: "#6b5c4e" }],
       scales: { x: { time: true } },
     },
@@ -634,7 +895,7 @@ function renderQualityChart(daily: DayStat[]) {
   const el = document.getElementById("chart-quality")!;
   el.innerHTML = "";
   if (daily.length === 0) {
-    el.innerHTML = `<div class="empty-state">Пока нет данных</div>`;
+    el.innerHTML = `<div class="empty-state">${t("stats.empty")}</div>`;
     return;
   }
   const xs = daily.map((d) => Date.parse(d.day) / 1000);
@@ -643,7 +904,7 @@ function renderQualityChart(daily: DayStat[]) {
     {
       width: el.clientWidth || 640,
       height: 160,
-      series: [{}, { label: "качество сигнала", stroke: "#a1503a", width: 2 }],
+      series: [{}, { label: t("stats.qualitySeries"), stroke: "#a1503a", width: 2 }],
       axes: [{ stroke: "#6b5c4e" }, { stroke: "#6b5c4e" }],
       scales: { x: { time: true }, y: { range: [0, 1] } },
     },

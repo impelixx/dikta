@@ -13,83 +13,92 @@
       <nav class="rail">
         <div class="drag-strip" data-tauri-drag-region></div>
         <div class="brand">Д</div>
-        <button data-view="home" class="active" title="Главная">●</button>
-        <button data-view="history" title="История">☰</button>
-        <button data-view="stats" title="Статистика">▤</button>
-        <button data-view="settings" title="Настройки">⚙</button>
+        <button data-view="home" class="active" title="Главная" data-i18n-title="nav.home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+        </button>
+        <button data-view="history" title="История" data-i18n-title="nav.history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        </button>
+        <button data-view="stats" title="Статистика" data-i18n-title="nav.stats">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/></svg>
+        </button>
+        <button data-view="settings" title="Настройки" data-i18n-title="nav.settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button id="lang-toggle" class="lang-toggle" title="Switch language">RU</button>
       </nav>
 
       <main class="view">
         <section id="view-home" class="panel active">
-          <h1>Дикта</h1>
-          <p class="subtitle">Локальное распознавание русской речи на GigaAM</p>
+          <h1 data-i18n="home.title">Дикта</h1>
+          <p class="subtitle" data-i18n="home.subtitle">Локальное распознавание русской речи</p>
 
           <div class="status-card">
             <div class="rec-dot" id="rec-dot"></div>
             <div class="status-text">
-              <div class="headline" id="status-headline">Готова слушать</div>
-              <div class="hint" id="status-hint">— настройте хоткеи во вкладке «Настройки»</div>
+              <div class="headline" id="status-headline" data-i18n="home.ready">Готова слушать</div>
+              <div class="hint" id="status-hint" data-i18n="home.readyHint">— настройте хоткеи во вкладке «Настройки»</div>
             </div>
             <canvas id="wave" width="320" height="88"></canvas>
           </div>
 
           <div class="last-transcript">
-            <div class="label">Последняя запись</div>
-            <div id="last-text">Пока ничего не распознано.</div>
+            <div class="label" data-i18n="home.lastLabel">Последняя запись</div>
+            <div id="last-text" data-i18n="home.lastEmpty">Пока ничего не распознано.</div>
           </div>
         </section>
 
         <section id="view-history" class="panel">
-          <h1>История</h1>
-          <p class="subtitle">Поиск, копирование, удаление</p>
+          <h1 data-i18n="history.title">История</h1>
+          <p class="subtitle" data-i18n="history.subtitle">Поиск, копирование, удаление</p>
           <div class="search-bar">
-            <input id="history-search" type="text" placeholder="Поиск по тексту…" />
+            <input id="history-search" type="text" placeholder="Поиск по тексту…" data-i18n-placeholder="history.searchPlaceholder" />
           </div>
           <div id="history-list"></div>
         </section>
 
         <section id="view-stats" class="panel">
-          <h1>Статистика</h1>
-          <p class="subtitle">Активность и качество сигнала</p>
+          <h1 data-i18n="stats.title">Статистика</h1>
+          <p class="subtitle" data-i18n="stats.subtitle">Активность и качество сигнала</p>
           <div class="stat-grid" id="stat-grid"></div>
           <div class="chart-card">
-            <h3>Время диктовки по дням</h3>
+            <h3 data-i18n="stats.timeChart">Время диктовки по дням</h3>
             <div id="chart-time"></div>
           </div>
           <div class="chart-card">
-            <h3>Качество сигнала (RMS-прокси, не модельная confidence)</h3>
+            <h3 data-i18n="stats.qualityChart">Качество сигнала (RMS-прокси, не модельная confidence)</h3>
             <div id="chart-quality"></div>
           </div>
         </section>
 
         <section id="view-settings" class="panel">
-          <h1>Настройки</h1>
-          <p class="subtitle">Хоткеи, голос, данные</p>
+          <h1 data-i18n="settings.title">Настройки</h1>
+          <p class="subtitle" data-i18n="settings.subtitle">Хоткеи, голос, данные</p>
 
           <div class="settings-section">
-            <h3>Хоткеи</h3>
+            <h3 data-i18n="settings.hotkeys">Хоткеи</h3>
             <div class="field-row">
               <div>
-                <div class="field-label">Push-to-talk</div>
-                <div class="field-desc">Держать — говорить, отпустить — распознать</div>
+                <div class="field-label" data-i18n="settings.pushToTalk">Push-to-talk</div>
+                <div class="field-desc" data-i18n="settings.pushToTalkDesc">Держать — говорить, отпустить — распознать</div>
               </div>
               <button class="hotkey-btn" id="hotkey-push" data-key="hotkey_push_to_talk"></button>
             </div>
             <div class="field-row">
               <div>
-                <div class="field-label">Toggle</div>
-                <div class="field-desc">Нажать — начать, нажать ещё раз — остановить</div>
+                <div class="field-label" data-i18n="settings.toggle">Toggle</div>
+                <div class="field-desc" data-i18n="settings.toggleDesc">Нажать — начать, нажать ещё раз — остановить</div>
               </div>
               <button class="hotkey-btn" id="hotkey-toggle" data-key="hotkey_toggle"></button>
             </div>
           </div>
 
           <div class="settings-section">
-            <h3>Голос</h3>
+            <h3 data-i18n="settings.voice">Голос</h3>
             <div class="field-row">
               <div>
-                <div class="field-label">Чувствительность автостопа</div>
-                <div class="field-desc">Насколько тихо должно быть, чтобы запись остановилась сама</div>
+                <div class="field-label" data-i18n="settings.sensitivity">Чувствительность автостопа</div>
+                <div class="field-desc" data-i18n="settings.sensitivityDesc">Насколько тихо должно быть, чтобы запись остановилась сама</div>
               </div>
               <div style="display:flex; align-items:center; gap:12px;">
                 <input type="range" id="vad-sensitivity" min="0" max="100" value="50" />
@@ -98,8 +107,8 @@
             </div>
             <div class="field-row">
               <div>
-                <div class="field-label">Пауза до автостопа</div>
-                <div class="field-desc">Сколько тишины ждать перед остановкой — короче для команд, длиннее для связной речи</div>
+                <div class="field-label" data-i18n="settings.hangover">Пауза до автостопа</div>
+                <div class="field-desc" data-i18n="settings.hangoverDesc">Сколько тишины ждать перед остановкой — короче для команд, длиннее для связной речи</div>
               </div>
               <div style="display:flex; align-items:center; gap:12px;">
                 <input type="range" id="silence-hangover" min="500" max="4000" step="100" value="2000" />
@@ -108,8 +117,8 @@
             </div>
             <div class="field-row">
               <div>
-                <div class="field-label">Автостоп в push-to-talk</div>
-                <div class="field-desc">Дополнительно к отпусканию клавиши</div>
+                <div class="field-label" data-i18n="settings.autostopPush">Автостоп в push-to-talk</div>
+                <div class="field-desc" data-i18n="settings.autostopPushDesc">Дополнительно к отпусканию клавиши</div>
               </div>
               <label class="switch">
                 <input type="checkbox" id="autostop-push" />
@@ -118,8 +127,8 @@
             </div>
             <div class="field-row">
               <div>
-                <div class="field-label">Автостоп в toggle</div>
-                <div class="field-desc">Не ждать повторного нажатия</div>
+                <div class="field-label" data-i18n="settings.autostopToggle">Автостоп в toggle</div>
+                <div class="field-desc" data-i18n="settings.autostopToggleDesc">Не ждать повторного нажатия</div>
               </div>
               <label class="switch">
                 <input type="checkbox" id="autostop-toggle" />
@@ -129,11 +138,11 @@
           </div>
 
           <div class="settings-section">
-            <h3>Вставка текста</h3>
+            <h3 data-i18n="settings.textInsertion">Вставка текста</h3>
             <div class="field-row">
               <div>
-                <div class="field-label">Автовставка в текущее поле</div>
-                <div class="field-desc">Если недоступна — текст уйдёт в буфер обмена</div>
+                <div class="field-label" data-i18n="settings.autopaste">Автовставка в текущее поле</div>
+                <div class="field-desc" data-i18n="settings.autopasteDesc">Если недоступна — текст уйдёт в буфер обмена</div>
               </div>
               <label class="switch">
                 <input type="checkbox" id="autopaste" />
@@ -143,22 +152,22 @@
           </div>
 
           <div class="settings-section">
-            <h3>Устройство ввода</h3>
+            <h3 data-i18n="settings.inputDevice">Устройство ввода</h3>
             <div class="field-row">
               <div>
-                <div class="field-label">Микрофон</div>
-                <div class="field-desc">Какое устройство слушать</div>
+                <div class="field-label" data-i18n="settings.microphone">Микрофон</div>
+                <div class="field-desc" data-i18n="settings.microphoneDesc">Какое устройство слушать</div>
               </div>
               <select id="input-device" class="select-field"></select>
             </div>
           </div>
 
           <div class="settings-section">
-            <h3>Тема</h3>
+            <h3 data-i18n="settings.theme">Тема</h3>
             <div class="field-row">
               <div>
-                <div class="field-label">Цветовая гамма</div>
-                <div class="field-desc">Крем и терракота, мятная или лавандовая</div>
+                <div class="field-label" data-i18n="settings.themeLabel">Цветовая гамма</div>
+                <div class="field-desc" data-i18n="settings.themeDesc">Крем и терракота, мятная или лавандовая</div>
               </div>
               <div class="theme-picker" id="theme-picker">
                 <button data-theme="cream" title="Крем и терракота"></button>
@@ -169,15 +178,15 @@
           </div>
 
           <div class="settings-section">
-            <h3>Модель распознавания</h3>
+            <h3 data-i18n="settings.model">Модель распознавания</h3>
             <div id="model-list"></div>
             <div class="custom-model-form">
-              <div class="field-desc" style="margin-bottom:8px;">
+              <div class="field-desc" style="margin-bottom:8px;" data-i18n="settings.customModelHint">
                 Добавить свою sherpa-onnx-совместимую модель с Hugging Face
               </div>
               <div style="display:flex; gap:8px; margin-bottom:8px;">
-                <input id="hf-repo-id" type="text" placeholder="например: Smirnov75/GigaAM-v3-sherpa-onnx" style="flex:1;" />
-                <button class="hotkey-btn" id="hf-list-btn">Найти файлы</button>
+                <input id="hf-repo-id" type="text" placeholder="например: Smirnov75/GigaAM-v3-sherpa-onnx" data-i18n-placeholder="settings.customModelPlaceholder" style="flex:1;" />
+                <button class="hotkey-btn" id="hf-list-btn" data-i18n="settings.findFiles">Найти файлы</button>
               </div>
               <div id="hf-file-mapping"></div>
             </div>
