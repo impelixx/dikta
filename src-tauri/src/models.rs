@@ -261,19 +261,31 @@ fn download_builtin(info: &ModelInfo, base: &Path, mut on_progress: impl FnMut(u
     std::fs::remove_file(&tmp_path).ok();
 
     let entry = ModelEntry::Builtin(info.clone());
-    if !is_downloaded(base, &entry) {
-        anyhow::bail!("после распаковки не найдены ожидаемые файлы модели");
-    }
+    let dir = model_root_dir(base, &entry);
 
     // Архивы Whisper содержат и fp32, и int8 версии encoder/decoder, а мы
     // всегда используем только int8 — удаляем неиспользуемые fp32-файлы
     // (для whisper-small это лишний ~1ГБ на диске просто так).
     if info.kind == ModelKind::Whisper {
         if let Some(prefix) = info.whisper_file_prefix {
-            let dir = model_root_dir(base, &entry);
             std::fs::remove_file(dir.join(format!("{prefix}-encoder.onnx"))).ok();
             std::fs::remove_file(dir.join(format!("{prefix}-decoder.onnx"))).ok();
         }
+    }
+
+    // Некоторые Transducer-архивы (например zipformer-ru) называют квантованный
+    // joiner "joiner.int8.onnx" вместо "joiner.onnx" — приводим к ожидаемому
+    // имени, не храня лишнюю fp32-копию.
+    if info.kind == ModelKind::Transducer {
+        let joiner = dir.join("joiner.onnx");
+        let joiner_int8 = dir.join("joiner.int8.onnx");
+        if !joiner.exists() && joiner_int8.exists() {
+            std::fs::rename(&joiner_int8, &joiner).ok();
+        }
+    }
+
+    if !is_downloaded(base, &entry) {
+        anyhow::bail!("после распаковки не найдены ожидаемые файлы модели");
     }
 
     Ok(())
