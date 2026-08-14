@@ -31,6 +31,22 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          # prefix-key разово меняет ключ кэша, чтобы этот прогон гарантированно
+          # пересобрал sherpa-rs-sys с нуля и заполнил оба кэша (target/ и
+          # cache-directories ниже) синхронно — иначе восстановился бы старый
+          # "испорченный" target/ с fingerprint, будто библиотеки уже на месте,
+          # при пустом ещё cache-directories. Можно убрать после одного зелёного прогона.
+          prefix-key: "v1-sherpa-cache-fix"
+          # sherpa-rs-sys скачивает готовые библиотеки sherpa-onnx/onnxruntime
+          # не в target/, а в системный кэш (dirs::cache_dir()/"sherpa-rs").
+          # rust-cache кэширует только target/ — без этого при восстановлении
+          # кэша Cargo видит валидный fingerprint build.rs (значит, повторно
+          # его не запускает), но библиотек на свежем раннере физически нет,
+          # и линковка падает с "library not found"/cannot open input file.
+          cache-directories: |
+            ~/Library/Caches/sherpa-rs
+            ~/.cache/sherpa-rs
+            ~/AppData/Local/sherpa-rs
 
       - name: Системные зависимости (Linux)
         if: matrix.platform == 'ubuntu-latest'
