@@ -83,6 +83,6 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "Дикта ${{ github.ref_name }}"
           releaseBody: "Автоматическая сборка. Полный список изменений — в истории коммитов."
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
