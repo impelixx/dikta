@@ -34,6 +34,12 @@ jobs:
       # (обычный однoархитектурный `cargo build` в ci.yml этого не ловит —
       # там свой дефолт от тулчейна, тут — из-за universal x86_64+aarch64).
       MACOSX_DEPLOYMENT_TARGET: "11.0"
+      # linuxdeploy (собирает AppImage) сам является AppImage и пытается
+      # смонтировать себя через FUSE — в контейнерах GitHub Actions ubuntu-
+      # latest даже с libfuse2t64 нет доступа к /dev/fuse. extract-and-run
+      # обходит монтирование, распаковывая AppImage во временную папку.
+      # На Windows/macOS переменная просто не используется, не мешает.
+      APPIMAGE_EXTRACT_AND_RUN: "1"
     steps:
       - uses: actions/checkout@v4
 
@@ -46,7 +52,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          prefix-key: "v1-sherpa-cache-fix"
+          prefix-key: "v2-macos-deploytarget-fix"
           # См. комментарий в ci.yml — sherpa-rs-sys кэширует бинарники вне
           # target/, rust-cache должен кэшировать их тоже, иначе линковка
           # падает на восстановленном (не свежем) кэше.
