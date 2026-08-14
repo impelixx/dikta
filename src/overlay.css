@@ -10,6 +10,16 @@ body {
   padding: 0;
   background: transparent;
   overflow: hidden;
+  height: 100%;
+}
+
+body {
+  /* Окно оверлея выше пилюли (запас под растущий текст); пилюля растёт
+     вверх от нижнего края окна, а не проваливается в его середину. */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .pill {
@@ -17,7 +27,7 @@ body {
   align-items: flex-start;
   gap: 10px;
   min-height: 44px;
-  max-height: 148px;
+  max-height: 258px;
   padding: 11px 16px;
   border-radius: 22px;
   background: rgba(44, 33, 22, 0.9);
@@ -77,8 +87,9 @@ body {
   white-space: normal;
   word-break: break-word;
   max-width: 360px;
-  max-height: 126px;
+  max-height: 236px;
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 #pill-text::-webkit-scrollbar {
@@ -87,4 +98,15 @@ body {
 #pill-text::-webkit-scrollbar-thumb {
   background: rgba(246, 238, 226, 0.3);
   border-radius: 999px;
+}
+
+/* Новые слова из очередного передекода мягко проявляются, а не влетают
+   вместе со всем текстом целиком — это и есть "плавный" псевдо-стриминг. */
+.chunk-new {
+  animation: chunk-fade-in 0.35s ease-out;
+}
+
+@keyframes chunk-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

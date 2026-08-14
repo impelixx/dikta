@@ -159,8 +159,10 @@ fn load_active_recognizer(settings: &AppSettings, models_dir: &PathBuf) -> Optio
 /// увидеть статус записи/распознавания, когда фокус в другой программе
 /// (а он почти всегда там, раз хоткей глобальный).
 fn create_overlay_window(app: &tauri::App) -> tauri::Result<()> {
-    let width = 400.0;
-    let height = 170.0;
+    let width = 420.0;
+    // Выше, чем раньше: пилюля должна вмещать несколько строк растущего
+    // текста во время диктовки без обрезки (см. overlay.css #pill-text).
+    let height = 280.0;
     let mut builder = tauri::WebviewWindowBuilder::new(app, "overlay", tauri::WebviewUrl::App("overlay.html".into()))
         .title("Дикта")
         .inner_size(width, height)

@@ -60,16 +60,43 @@ function scheduleHide(delayMs: number) {
   }, delayMs);
 }
 
+// Текст живых субтитров, который сейчас отображён в DOM (без префиксов
+// вроде "✓ "/"⧉ скопировано:"), чтобы отличать "дописали слово" от
+// "передекод переписал более раннюю часть" при следующем partial-transcript.
+let lastPartialText = "";
+
+/// Точечно обновляет текстовый узел вместо textContent на весь текст:
+/// если новый текст — это старый плюс дописанный хвост (обычный случай для
+/// growing-buffer передекода), дописываем только новый кусок отдельным
+/// span'ом с плавным fade-in. Если модель переосмыслила и переписала более
+/// раннюю часть текста — просто заменяем всё содержимое разом.
+function renderPartialText(newText: string) {
+  if (newText.startsWith(lastPartialText) && newText.length > lastPartialText.length) {
+    const added = newText.slice(lastPartialText.length);
+    const span = document.createElement("span");
+    span.className = "chunk-new";
+    span.textContent = added;
+    text.appendChild(span);
+  } else if (newText !== lastPartialText) {
+    text.textContent = newText;
+  }
+  lastPartialText = newText;
+  // Автоскролл к низу — во время диктовки важнее видеть только что
+  // сказанное, а не начало, которое уже прочитано.
+  text.scrollTop = text.scrollHeight;
+}
+
 listen("recording-started", () => {
   window.clearTimeout(hideTimer);
   waving = true;
   setState("listening");
+  lastPartialText = "";
   text.textContent = s.listening;
   win.show();
 });
 
 listen<string>("partial-transcript", (event) => {
-  text.textContent = event.payload;
+  renderPartialText(event.payload);
 });
 
 listen<number>("audio-level", (event) => {
@@ -88,6 +115,7 @@ listen<{ text: string; outcome: string }>("transcription-done", (event) => {
   setState("done");
   const full = event.payload.text;
   text.textContent = event.payload.outcome === "AutoInserted" ? `${s.autoInserted} ${full}` : `${s.copied} ${full}`;
+  text.scrollTop = 0;
   scheduleHide(1600);
 });
 
