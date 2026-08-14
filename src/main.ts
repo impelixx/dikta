@@ -301,7 +301,7 @@ interface ModelListItem {
   id: string;
   name: string;
   description?: string;
-  kind: "Ctc" | "Transducer" | "Whisper";
+  kind: "Ctc" | "Transducer" | "Whisper" | "WhisperCpp";
   size_mb?: number;
   repo_id?: string;
   languages?: string[];
@@ -503,47 +503,46 @@ document.getElementById("input-device")!.addEventListener("change", async (e) =>
 
 let allModels: ModelListItem[] = [];
 let modelLangFilter = "all";
-let modelKindFilter: "all" | "Ctc" | "Transducer" | "Whisper" = "all";
+let modelKindFilter: "all" | "Ctc" | "Transducer" | "Whisper" | "WhisperCpp" = "all";
 
 function renderModelFilters() {
   const container = document.getElementById("model-filters")!;
   const langs = new Set<string>();
-  const kinds = new Set<"Ctc" | "Transducer" | "Whisper">();
+  const kinds = new Set<"Ctc" | "Transducer" | "Whisper" | "WhisperCpp">();
   for (const m of allModels) {
     kinds.add(m.kind);
     for (const l of m.languages ?? []) {
       if (/^[a-z]{2}$/i.test(l)) langs.add(l.toLowerCase());
     }
   }
-  const langChips = ["all", ...Array.from(langs).sort()]
-    .map((l) => {
-      const label = l === "all" ? (currentLang === "ru" ? "Все языки" : "All languages") : l.toUpperCase();
-      return `<button class="filter-chip${modelLangFilter === l ? " active" : ""}" data-filter-lang="${l}">${label}</button>`;
-    })
+  const kindLabels: Record<string, string> = {
+    all: currentLang === "ru" ? "Все типы" : "All types",
+    Ctc: "CTC",
+    Transducer: "Transducer",
+    Whisper: "Whisper (ONNX)",
+    WhisperCpp: "Whisper (whisper.cpp)",
+  };
+  const allLangsLabel = currentLang === "ru" ? "Все языки" : "All languages";
+
+  const langOptions = ["all", ...Array.from(langs).sort()]
+    .map((l) => `<option value="${l}"${modelLangFilter === l ? " selected" : ""}>${l === "all" ? allLangsLabel : l.toUpperCase()}</option>`)
     .join("");
-  const kindLabels: Record<string, string> = { all: currentLang === "ru" ? "Все типы" : "All types", Ctc: "CTC", Transducer: "Transducer", Whisper: "Whisper" };
-  const kindChips = ["all", ...Array.from(kinds)]
-    .map((k) => `<button class="filter-chip${modelKindFilter === k ? " active" : ""}" data-filter-kind="${k}">${kindLabels[k]}</button>`)
+  const kindOptions = ["all", ...Array.from(kinds)]
+    .map((k) => `<option value="${k}"${modelKindFilter === k ? " selected" : ""}>${kindLabels[k]}</option>`)
     .join("");
 
   container.innerHTML = `
-    <div class="filter-row">${langChips}</div>
-    <div class="filter-row">${kindChips}</div>
+    <select class="filter-select" id="model-filter-lang">${langOptions}</select>
+    <select class="filter-select" id="model-filter-kind">${kindOptions}</select>
   `;
 
-  container.querySelectorAll<HTMLButtonElement>("[data-filter-lang]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      modelLangFilter = btn.dataset.filterLang!;
-      renderModelFilters();
-      renderModelList();
-    });
+  container.querySelector<HTMLSelectElement>("#model-filter-lang")!.addEventListener("change", (e) => {
+    modelLangFilter = (e.target as HTMLSelectElement).value;
+    renderModelList();
   });
-  container.querySelectorAll<HTMLButtonElement>("[data-filter-kind]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      modelKindFilter = btn.dataset.filterKind as typeof modelKindFilter;
-      renderModelFilters();
-      renderModelList();
-    });
+  container.querySelector<HTMLSelectElement>("#model-filter-kind")!.addEventListener("change", (e) => {
+    modelKindFilter = (e.target as HTMLSelectElement).value as typeof modelKindFilter;
+    renderModelList();
   });
 }
 
@@ -570,7 +569,7 @@ function renderModelList() {
     el.className = "model-item" + (m.active ? " active" : "");
     const sizeLabel = m.size_mb ? `${m.size_mb}${currentLang === "ru" ? "МБ" : "MB"}` : "";
     const desc = m.source === "Custom" ? `HF: ${m.repo_id}` : m.description ?? "";
-    const kindLabel = m.kind === "Ctc" ? "CTC" : m.kind === "Transducer" ? "Transducer" : "Whisper";
+    const kindLabel = m.kind === "Ctc" ? "CTC" : m.kind === "Transducer" ? "Transducer" : m.kind === "WhisperCpp" ? "Whisper.cpp" : "Whisper";
 
     const badges: string[] = [`<span class="badge">${kindLabel}</span>`];
     if (m.languages?.length) {

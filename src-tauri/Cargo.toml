@@ -35,6 +35,12 @@ anyhow = "1"
 ureq = { version = "2.10", features = ["tls", "json"] }
 tar = "0.4"
 bzip2 = "0.4"
+whisper-rs = { version = "0.16", default-features = false }
+
+# GPU-ускорение через Metal только на macOS — Cargo объединяет фичи с
+# базовым объявлением выше, отдельно объявлять зависимость второй раз не нужно.
+[target.'cfg(target_os = "macos")'.dependencies]
+whisper-rs = { version = "0.16", default-features = false, features = ["metal"] }
 
 [dev-dependencies]
 hound = "3.5"

@@ -4,18 +4,6 @@ use sherpa_rs::sherpa_rs_sys;
 use std::ffi::{CStr, CString};
 use std::mem;
 
-/// Тонкая обёртка над sherpa-rs-sys — в высокоуровневом sherpa-rs нет готовых
-/// модулей под nemo_ctc/nemo transducer, поэтому конфигурируем FFI-структуры
-/// напрямую по образцу zipformer.rs из sherpa-rs. Поддерживает оба семейства
-/// моделей GigaAM: CTC (один onnx-файл) и Transducer (encoder/decoder/joiner).
-pub struct Recognizer {
-    recognizer: *mut sherpa_rs_sys::SherpaOnnxOfflineRecognizer,
-    _keep_alive: Vec<CString>,
-}
-
-unsafe impl Send for Recognizer {}
-unsafe impl Sync for Recognizer {}
-
 fn cstr(s: &str) -> CString {
     CString::new(s).expect("string contains NUL byte")
 }
@@ -38,12 +26,20 @@ pub struct WhisperPaths<'a> {
     pub tokens: &'a str,
 }
 
-impl Recognizer {
-    pub fn new_ctc(paths: CtcPaths, num_threads: i32) -> Result<Self> {
-        Self::new_ctc_with_dim(paths, num_threads, 64)
-    }
+/// Обёртка над sherpa-rs-sys — в высокоуровневом sherpa-rs нет готовых
+/// модулей под nemo_ctc/nemo transducer, поэтому конфигурируем FFI-структуры
+/// напрямую по образцу zipformer.rs из sherpa-rs. Покрывает CTC, Transducer
+/// и Whisper через ONNX Runtime.
+pub struct SherpaEngine {
+    recognizer: *mut sherpa_rs_sys::SherpaOnnxOfflineRecognizer,
+    _keep_alive: Vec<CString>,
+}
 
-    pub fn new_ctc_with_dim(paths: CtcPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
+unsafe impl Send for SherpaEngine {}
+unsafe impl Sync for SherpaEngine {}
+
+impl SherpaEngine {
+    fn new_ctc_with_dim(paths: CtcPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
         let model_c = cstr(paths.model);
         let tokens_c = cstr(paths.tokens);
         let provider_c = cstr("cpu");
@@ -80,11 +76,7 @@ impl Recognizer {
         Self::create(model_config, decoding_c, vec![model_c, tokens_c, provider_c], feature_dim)
     }
 
-    pub fn new_transducer(paths: TransducerPaths, num_threads: i32) -> Result<Self> {
-        Self::new_transducer_with_dim(paths, num_threads, 64)
-    }
-
-    pub fn new_transducer_with_dim(paths: TransducerPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
+    fn new_transducer_with_dim(paths: TransducerPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
         let encoder_c = cstr(paths.encoder);
         let decoder_c = cstr(paths.decoder);
         let joiner_c = cstr(paths.joiner);
@@ -130,7 +122,7 @@ impl Recognizer {
         )
     }
 
-    pub fn new_whisper(paths: WhisperPaths, language: &str, num_threads: i32) -> Result<Self> {
+    fn new_whisper(paths: WhisperPaths, language: &str, num_threads: i32) -> Result<Self> {
         let encoder_c = cstr(paths.encoder);
         let decoder_c = cstr(paths.decoder);
         let tokens_c = cstr(paths.tokens);
@@ -220,6 +212,131 @@ impl Recognizer {
         })
     }
 
+    fn decode(&self, samples: &[f32]) -> String {
+        unsafe {
+            let stream = sherpa_rs_sys::SherpaOnnxCreateOfflineStream(self.recognizer);
+            sherpa_rs_sys::SherpaOnnxAcceptWaveformOffline(
+                stream,
+                16000,
+                samples.as_ptr(),
+                samples.len() as i32,
+            );
+            sherpa_rs_sys::SherpaOnnxDecodeOfflineStream(self.recognizer, stream);
+            let result_ptr = sherpa_rs_sys::SherpaOnnxGetOfflineStreamResult(stream);
+            let text = if result_ptr.is_null() {
+                String::new()
+            } else {
+                let raw = &*result_ptr;
+                if raw.text.is_null() {
+                    String::new()
+                } else {
+                    CStr::from_ptr(raw.text).to_string_lossy().into_owned()
+                }
+            };
+            sherpa_rs_sys::SherpaOnnxDestroyOfflineRecognizerResult(result_ptr);
+            sherpa_rs_sys::SherpaOnnxDestroyOfflineStream(stream);
+            text
+        }
+    }
+}
+
+impl Drop for SherpaEngine {
+    fn drop(&mut self) {
+        unsafe {
+            sherpa_rs_sys::SherpaOnnxDestroyOfflineRecognizer(self.recognizer);
+        }
+    }
+}
+
+/// whisper.cpp через whisper-rs — второй движок рядом с sherpa-onnx. Даёт
+/// GPU-ускорение (Metal на macOS) для Whisper-моделей в формате GGML/GGUF,
+/// как в Handy. GigaAM/Zipformer/Fast Conformer остаются на sherpa-onnx —
+/// у whisper.cpp нет этих архитектур.
+pub struct WhisperCppEngine {
+    ctx: whisper_rs::WhisperContext,
+    language: String,
+    num_threads: i32,
+}
+
+unsafe impl Send for WhisperCppEngine {}
+unsafe impl Sync for WhisperCppEngine {}
+
+impl WhisperCppEngine {
+    fn new(model_path: &str, language: &str, num_threads: i32) -> Result<Self> {
+        let ctx = whisper_rs::WhisperContext::new_with_params(
+            model_path,
+            whisper_rs::WhisperContextParameters::default(),
+        )
+        .map_err(|e| anyhow::anyhow!("не удалось загрузить whisper.cpp модель: {e}"))?;
+        Ok(Self {
+            ctx,
+            language: language.to_string(),
+            num_threads,
+        })
+    }
+
+    fn decode(&self, samples: &[f32]) -> String {
+        let mut state = match self.ctx.create_state() {
+            Ok(s) => s,
+            Err(_) => return String::new(),
+        };
+        let mut params = whisper_rs::FullParams::new(whisper_rs::SamplingStrategy::Greedy { best_of: 1 });
+        params.set_language(Some(&self.language));
+        params.set_n_threads(self.num_threads);
+        params.set_print_progress(false);
+        params.set_print_special(false);
+        params.set_print_realtime(false);
+        params.set_print_timestamps(false);
+        params.set_translate(false);
+
+        if state.full(params, samples).is_err() {
+            return String::new();
+        }
+
+        let mut text = String::new();
+        for segment in state.as_iter() {
+            if !text.is_empty() {
+                text.push(' ');
+            }
+            text.push_str(&segment.to_string());
+        }
+        text.trim().to_string()
+    }
+}
+
+/// Распознаватель речи — либо sherpa-onnx (CTC/Transducer/Whisper через ONNX),
+/// либо whisper.cpp (Whisper через GGML, с GPU-ускорением). Выбор зависит от
+/// модели в каталоге, вызывающему код это не важно — везде один `decode()`.
+pub enum Recognizer {
+    Sherpa(SherpaEngine),
+    WhisperCpp(WhisperCppEngine),
+}
+
+impl Recognizer {
+    pub fn new_ctc(paths: CtcPaths, num_threads: i32) -> Result<Self> {
+        Ok(Self::Sherpa(SherpaEngine::new_ctc_with_dim(paths, num_threads, 64)?))
+    }
+
+    pub fn new_ctc_with_dim(paths: CtcPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
+        Ok(Self::Sherpa(SherpaEngine::new_ctc_with_dim(paths, num_threads, feature_dim)?))
+    }
+
+    pub fn new_transducer(paths: TransducerPaths, num_threads: i32) -> Result<Self> {
+        Ok(Self::Sherpa(SherpaEngine::new_transducer_with_dim(paths, num_threads, 64)?))
+    }
+
+    pub fn new_transducer_with_dim(paths: TransducerPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
+        Ok(Self::Sherpa(SherpaEngine::new_transducer_with_dim(paths, num_threads, feature_dim)?))
+    }
+
+    pub fn new_whisper(paths: WhisperPaths, language: &str, num_threads: i32) -> Result<Self> {
+        Ok(Self::Sherpa(SherpaEngine::new_whisper(paths, language, num_threads)?))
+    }
+
+    pub fn new_whisper_cpp(model_path: &str, language: &str, num_threads: i32) -> Result<Self> {
+        Ok(Self::WhisperCpp(WhisperCppEngine::new(model_path, language, num_threads)?))
+    }
+
     pub fn from_model_dir(dir: &std::path::Path, kind: ModelKind, num_threads: i32) -> Result<Self> {
         Self::from_model_dir_with_dim(dir, kind, num_threads, 64)
     }
@@ -265,18 +382,27 @@ impl Recognizer {
                     feature_dim,
                 )
             }
-            // Whisper грузится через from_whisper_dir (нужен префикс имени файлов
-            // и язык) — сюда попадать не должен, но не паникуем на всякий случай.
-            ModelKind::Whisper => {
-                bail!("для Whisper используйте Recognizer::from_whisper_dir")
+            // Whisper (ONNX) грузится через from_whisper_dir, whisper.cpp —
+            // через from_entry напрямую. Сюда попадать не должен.
+            ModelKind::Whisper | ModelKind::WhisperCpp => {
+                bail!("для Whisper используйте Recognizer::from_entry")
             }
         }
     }
 
-    /// Собирает распознаватель по элементу каталога — сама решает, обычный
-    /// ли это путь (CTC/Transducer) или Whisper (нужны префикс файлов и язык).
+    /// Собирает распознаватель по элементу каталога — сама решает движок
+    /// (sherpa-onnx или whisper.cpp) и специфику загрузки файлов.
     pub fn from_entry(dir: &std::path::Path, entry: &ModelEntry, num_threads: i32) -> Result<Self> {
         match entry {
+            ModelEntry::Builtin(info) if info.kind == ModelKind::WhisperCpp => {
+                let model = dir.join("model.bin");
+                let language = info.whisper_language.unwrap_or("ru");
+                Self::new_whisper_cpp(
+                    model.to_str().expect("некорректный путь к модели"),
+                    language,
+                    num_threads,
+                )
+            }
             ModelEntry::Builtin(info) if info.kind == ModelKind::Whisper => {
                 let prefix = info.whisper_file_prefix.unwrap_or("model");
                 let language = info.whisper_language.unwrap_or("ru");
@@ -314,37 +440,9 @@ impl Recognizer {
 
     /// Распознаёт моно-сэмплы f32 в диапазоне [-1.0, 1.0] на 16kHz.
     pub fn decode(&self, samples: &[f32]) -> String {
-        unsafe {
-            let stream = sherpa_rs_sys::SherpaOnnxCreateOfflineStream(self.recognizer);
-            sherpa_rs_sys::SherpaOnnxAcceptWaveformOffline(
-                stream,
-                16000,
-                samples.as_ptr(),
-                samples.len() as i32,
-            );
-            sherpa_rs_sys::SherpaOnnxDecodeOfflineStream(self.recognizer, stream);
-            let result_ptr = sherpa_rs_sys::SherpaOnnxGetOfflineStreamResult(stream);
-            let text = if result_ptr.is_null() {
-                String::new()
-            } else {
-                let raw = &*result_ptr;
-                if raw.text.is_null() {
-                    String::new()
-                } else {
-                    CStr::from_ptr(raw.text).to_string_lossy().into_owned()
-                }
-            };
-            sherpa_rs_sys::SherpaOnnxDestroyOfflineRecognizerResult(result_ptr);
-            sherpa_rs_sys::SherpaOnnxDestroyOfflineStream(stream);
-            text
-        }
-    }
-}
-
-impl Drop for Recognizer {
-    fn drop(&mut self) {
-        unsafe {
-            sherpa_rs_sys::SherpaOnnxDestroyOfflineRecognizer(self.recognizer);
+        match self {
+            Self::Sherpa(engine) => engine.decode(samples),
+            Self::WhisperCpp(engine) => engine.decode(samples),
         }
     }
 }

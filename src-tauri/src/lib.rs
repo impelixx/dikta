@@ -34,25 +34,61 @@ pub fn rebuild_tray_menu(app: &AppHandle) -> tauri::Result<()> {
     let loaded_id = state.recognizer.lock().unwrap().as_ref().map(|r| r.model_id.clone());
     drop(state);
 
-    let model_items: Vec<CheckMenuItem<tauri::Wry>> = models::full_catalog(&settings.custom_models)
+    let downloaded: Vec<models::ModelEntry> = models::full_catalog(&settings.custom_models)
         .into_iter()
         .filter(|entry| models::is_downloaded(&app.state::<AppState>().models_dir, entry))
-        .filter_map(|entry| {
-            CheckMenuItem::with_id(
+        .collect();
+
+    // Группируем по типу движка (CTC/Transducer/Whisper/whisper.cpp), чтобы
+    // список моделей в трее можно было фильтровать вложенными подменю, а не
+    // листать один длинный плоский список.
+    let kind_label = |k: models::ModelKind| -> &'static str {
+        match k {
+            models::ModelKind::Ctc => "CTC",
+            models::ModelKind::Transducer => "Transducer",
+            models::ModelKind::Whisper => "Whisper (ONNX)",
+            models::ModelKind::WhisperCpp => "Whisper (whisper.cpp)",
+        }
+    };
+    let kinds = [
+        models::ModelKind::Ctc,
+        models::ModelKind::Transducer,
+        models::ModelKind::Whisper,
+        models::ModelKind::WhisperCpp,
+    ];
+
+    let mut group_submenus: Vec<Submenu<tauri::Wry>> = Vec::new();
+    // CheckMenuItem'ы должны жить, пока живо меню — держим их в отдельном
+    // векторе на весь остаток функции, а не только внутри цикла.
+    let mut all_items: Vec<CheckMenuItem<tauri::Wry>> = Vec::new();
+    for kind in kinds {
+        let entries: Vec<&models::ModelEntry> = downloaded.iter().filter(|e| e.kind() == kind).collect();
+        if entries.is_empty() {
+            continue;
+        }
+        let start = all_items.len();
+        for entry in &entries {
+            if let Ok(item) = CheckMenuItem::with_id(
                 app,
                 format!("model:{}", entry.id()),
                 entry.name(),
                 true,
                 loaded_id.as_deref() == Some(entry.id()),
                 None::<&str>,
-            )
-            .ok()
-        })
-        .collect();
+            ) {
+                all_items.push(item);
+            }
+        }
+        let refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> =
+            all_items[start..].iter().map(|i| i as &dyn tauri::menu::IsMenuItem<tauri::Wry>).collect();
+        if let Ok(submenu) = Submenu::with_items(app, kind_label(kind), true, &refs) {
+            group_submenus.push(submenu);
+        }
+    }
 
-    let model_refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> =
-        model_items.iter().map(|i| i as &dyn tauri::menu::IsMenuItem<tauri::Wry>).collect();
-    let models_submenu = Submenu::with_items(app, "Модель", true, &model_refs)?;
+    let group_refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> =
+        group_submenus.iter().map(|s| s as &dyn tauri::menu::IsMenuItem<tauri::Wry>).collect();
+    let models_submenu = Submenu::with_items(app, "Модель", true, &group_refs)?;
 
     let show = MenuItem::with_id(app, "show", "Открыть Дикту", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;

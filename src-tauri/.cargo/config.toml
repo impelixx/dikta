@@ -1,0 +1,12 @@
+# На новых macOS SDK (Xcode 26+) сборка ggml-cpu (часть whisper.cpp, тянется
+# транзитивно через whisper-rs) падает: `Accelerate.framework` включает
+# `CoreGraphics.h`, а его enum-объявления конфликтуют с `-Welaborated-enum-base`
+# у актуального Clang. Это проблема самого SDK/ggml, не нашего кода — глушим
+# предупреждение глобально для C/C++ части сборки.
+#
+# Известный риск: на Windows (MSVC) синтаксис флагов другой (-W vs /W).
+# Если сборка под Windows упадёт из-за этого — сузить env до macOS-раннера
+# в .github/workflows или патчить через build.rs конкретной зависимости.
+[env]
+CXXFLAGS = "-Wno-elaborated-enum-base"
+CFLAGS = "-Wno-elaborated-enum-base"

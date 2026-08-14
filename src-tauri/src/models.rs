@@ -7,7 +7,10 @@ use std::path::{Path, PathBuf};
 pub enum ModelKind {
     Ctc,
     Transducer,
+    /// Whisper через sherpa-onnx (ONNX Runtime).
     Whisper,
+    /// Whisper через whisper.cpp (GGML/GGUF, с GPU-ускорением — как в Handy).
+    WhisperCpp,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -37,6 +40,9 @@ pub struct ModelInfo {
     /// каждой модели проверено вручную (cargo run --example ... с реальным
     /// аудио), а не угадано по умолчанию.
     pub feature_dim: i32,
+    /// Только для WhisperCpp: прямая ссылка на .bin файл модели (GGML),
+    /// не архив — скачивается одним файлом, без tar/bzip2.
+    pub ggml_url: Option<&'static str>,
 }
 
 /// Модель, добавленная пользователем по произвольному репозиторию Hugging Face.
@@ -110,6 +116,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             whisper_file_prefix: None,
             whisper_language: None,
             feature_dim: 64,
+            ggml_url: None,
         },
         ModelInfo {
             id: "giga-ctc-punct-v3",
@@ -125,6 +132,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             whisper_file_prefix: None,
             whisper_language: None,
             feature_dim: 64,
+            ggml_url: None,
         },
         ModelInfo {
             id: "giga-transducer-v3",
@@ -140,6 +148,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             whisper_file_prefix: None,
             whisper_language: None,
             feature_dim: 64,
+            ggml_url: None,
         },
         ModelInfo {
             id: "giga-transducer-punct-v3",
@@ -155,36 +164,39 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             whisper_file_prefix: None,
             whisper_language: None,
             feature_dim: 64,
+            ggml_url: None,
         },
         ModelInfo {
-            id: "whisper-base",
-            name: "Whisper base (OpenAI)",
-            description: "Многоязычная модель OpenAI — на русском заметно чаще ошибается в деталях, чем GigaAM, но одна модель понимает ~99 языков без переключения.",
-            kind: ModelKind::Whisper,
-            archive_stem: "sherpa-onnx-whisper-base",
-            size_mb: 165,
+            id: "whisper-cpp-base",
+            name: "Whisper base (whisper.cpp)",
+            description: "Многоязычная модель OpenAI через whisper.cpp — GPU-ускорение (Metal на macOS), как в Handy. На русском чаще ошибается в деталях, чем GigaAM, но одна модель понимает ~99 языков.",
+            kind: ModelKind::WhisperCpp,
+            archive_stem: "whisper-cpp-base",
+            size_mb: 148,
             languages: &["ru", "en", "+97 других"],
             punctuation: true,
-            measured_rtf: 0.086,
-            measured_load_ms: 660,
-            whisper_file_prefix: Some("base"),
+            measured_rtf: 0.0157,
+            measured_load_ms: 5941,
+            whisper_file_prefix: None,
             whisper_language: Some("ru"),
-            feature_dim: 80,
+            feature_dim: 0,
+            ggml_url: Some("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"),
         },
         ModelInfo {
-            id: "whisper-small",
-            name: "Whisper small (OpenAI)",
-            description: "Та же многоязычная модель OpenAI, крупнее и точнее base на русском, но втрое медленнее и почти 400МБ на диске.",
-            kind: ModelKind::Whisper,
-            archive_stem: "sherpa-onnx-whisper-small",
-            size_mb: 380,
+            id: "whisper-cpp-small",
+            name: "Whisper small (whisper.cpp)",
+            description: "Та же модель через whisper.cpp, крупнее и точнее base на русском — с GPU-ускорением ощутимо быстрее, чем ONNX-вариант такого же размера.",
+            kind: ModelKind::WhisperCpp,
+            archive_stem: "whisper-cpp-small",
+            size_mb: 488,
             languages: &["ru", "en", "+97 других"],
             punctuation: true,
-            measured_rtf: 0.277,
-            measured_load_ms: 1510,
-            whisper_file_prefix: Some("small"),
+            measured_rtf: 0.0428,
+            measured_load_ms: 166,
+            whisper_file_prefix: None,
             whisper_language: Some("ru"),
-            feature_dim: 80,
+            feature_dim: 0,
+            ggml_url: Some("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin"),
         },
         ModelInfo {
             id: "fast-conformer-multilingual",
@@ -200,6 +212,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             whisper_file_prefix: None,
             whisper_language: None,
             feature_dim: 80,
+            ggml_url: None,
         },
         ModelInfo {
             id: "zipformer-ru",
@@ -215,6 +228,7 @@ pub fn builtin_catalog() -> Vec<ModelInfo> {
             whisper_file_prefix: None,
             whisper_language: None,
             feature_dim: 80,
+            ggml_url: None,
         },
     ]
 }
@@ -259,6 +273,7 @@ pub fn is_downloaded(base: &Path, entry: &ModelEntry) -> bool {
                 && dir.join(format!("{prefix}-decoder.int8.onnx")).exists()
                 && dir.join(format!("{prefix}-tokens.txt")).exists()
         }
+        ModelKind::WhisperCpp => dir.join("model.bin").exists(),
     }
 }
 
@@ -267,9 +282,27 @@ pub fn is_downloaded(base: &Path, entry: &ModelEntry) -> bool {
 /// в отдельном потоке, если не хочет блокировать текущий.
 pub fn download(entry: &ModelEntry, base: &Path, mut on_progress: impl FnMut(u64, u64)) -> Result<()> {
     match entry {
+        ModelEntry::Builtin(info) if info.kind == ModelKind::WhisperCpp => {
+            download_ggml(info, base, &mut on_progress)
+        }
         ModelEntry::Builtin(info) => download_builtin(info, base, on_progress),
         ModelEntry::Custom(c) => download_custom(c, base, &mut on_progress),
     }
+}
+
+/// Модели whisper.cpp — один .bin файл (GGML), без архива.
+fn download_ggml(info: &ModelInfo, base: &Path, on_progress: &mut impl FnMut(u64, u64)) -> Result<()> {
+    let url = info.ggml_url.context("у модели не задан ggml_url")?;
+    let dir = base.join(info.archive_stem);
+    std::fs::create_dir_all(&dir)?;
+    let mut downloaded = 0u64;
+    download_one_file(url, &dir.join("model.bin"), &mut downloaded, on_progress)?;
+
+    let entry = ModelEntry::Builtin(info.clone());
+    if !is_downloaded(base, &entry) {
+        anyhow::bail!("после скачивания не найден файл модели");
+    }
+    Ok(())
 }
 
 fn download_builtin(info: &ModelInfo, base: &Path, mut on_progress: impl FnMut(u64, u64)) -> Result<()> {
@@ -336,6 +369,7 @@ fn download_builtin(info: &ModelInfo, base: &Path, mut on_progress: impl FnMut(u
 
 fn download_one_file(url: &str, dest: &Path, downloaded_so_far: &mut u64, on_progress: &mut impl FnMut(u64, u64)) -> Result<()> {
     let resp = ureq::get(url).call().with_context(|| format!("не удалось скачать {url}"))?;
+    let total: u64 = resp.header("Content-Length").and_then(|v| v.parse().ok()).unwrap_or(0);
     let mut file = std::fs::File::create(dest)?;
     let mut reader = resp.into_reader();
     let mut buf = [0u8; 64 * 1024];
@@ -346,7 +380,7 @@ fn download_one_file(url: &str, dest: &Path, downloaded_so_far: &mut u64, on_pro
         }
         file.write_all(&buf[..n])?;
         *downloaded_so_far += n as u64;
-        on_progress(*downloaded_so_far, 0);
+        on_progress(*downloaded_so_far, total);
     }
     Ok(())
 }

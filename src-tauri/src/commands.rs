@@ -129,7 +129,7 @@ pub fn add_custom_model(
             joiner: joiner.ok_or("не указан joiner")?,
             tokens,
         },
-        ModelKind::Whisper => {
+        ModelKind::Whisper | ModelKind::WhisperCpp => {
             return Err("Whisper пока поддерживается только во встроенном каталоге, не как своя HF-модель".to_string())
         }
     };
