@@ -27,6 +27,13 @@ jobs:
           - platform: windows-latest
             args: ""
     runs-on: ${{ matrix.platform }}
+    env:
+      # Без явного deployment target universal-apple-darwin сборка ggml
+      # (whisper.cpp) падает: ggml-backend-reg.cpp использует std::filesystem,
+      # а SDK помечает его недоступным ниже 10.15, если таргет не задан явно
+      # (обычный однoархитектурный `cargo build` в ci.yml этого не ловит —
+      # там свой дефолт от тулчейна, тут — из-за universal x86_64+aarch64).
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
     steps:
       - uses: actions/checkout@v4
 

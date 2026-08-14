@@ -33,6 +33,11 @@ jobs:
           - platform: windows-latest
             args: ""
     runs-on: ${{ matrix.platform }}
+    env:
+      # См. комментарий в release.yml — universal-apple-darwin сборка ggml
+      # падает без явного deployment target (std::filesystem недоступен
+      # ниже 10.15 в дефолте для этой цели).
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
     steps:
       - uses: actions/checkout@v4
 
