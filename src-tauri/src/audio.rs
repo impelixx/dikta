@@ -25,6 +25,54 @@ fn resample_linear(input: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     out
 }
 
+/// Частота дискретизации, на которой работает RNNoise-модель nnnoiseless.
+const DENOISE_SAMPLE_RATE: u32 = 48000;
+
+/// Шумоподавление поверх готового 16kHz mono f32 буфера (диапазон -1.0..1.0),
+/// перед тем как он уйдёт в `Recognizer::decode()`. nnnoiseless (чистый Rust
+/// порт RNNoise) работает на 48kHz покадрово (`DenoiseState::FRAME_SIZE`
+/// сэмплов) и ожидает амплитуду в диапазоне 16-битного PCM (-32768..32767),
+/// поэтому сигнал апсемплим на вход и обратно на 16kHz на выходе, приводя
+/// длину результата к исходной.
+pub fn denoise(input: &[f32]) -> Vec<f32> {
+    if input.is_empty() {
+        return Vec::new();
+    }
+
+    let upsampled = resample_linear(input, 16000, DENOISE_SAMPLE_RATE);
+    let frame_size = nnnoiseless::DenoiseState::FRAME_SIZE;
+
+    // Дополняем нулями до кратности размеру кадра — nnnoiseless обрабатывает
+    // только полные кадры.
+    let padded_len = upsampled.len().div_ceil(frame_size) * frame_size;
+    let mut padded = upsampled;
+    padded.resize(padded_len, 0.0);
+
+    // RNNoise ожидает диапазон 16-битного PCM, а не -1.0..1.0.
+    const PCM_SCALE: f32 = i16::MAX as f32;
+    for s in padded.iter_mut() {
+        *s *= PCM_SCALE;
+    }
+
+    let mut state = nnnoiseless::DenoiseState::new();
+    let mut denoised = Vec::with_capacity(padded.len());
+    let mut out_frame = vec![0.0f32; frame_size];
+    for chunk in padded.chunks_exact(frame_size) {
+        state.process_frame(&mut out_frame, chunk);
+        denoised.extend_from_slice(&out_frame);
+    }
+
+    for s in denoised.iter_mut() {
+        *s /= PCM_SCALE;
+    }
+
+    let mut downsampled = resample_linear(&denoised, DENOISE_SAMPLE_RATE, 16000);
+    // Ресемплинг туда-обратно и дополнение до кадра могут чуть сдвинуть длину —
+    // приводим её точно к исходной, чтобы вызывающий код не заботился об этом.
+    downsampled.resize(input.len(), 0.0);
+    downsampled
+}
+
 fn downmix_to_mono(interleaved: &[f32], channels: u16) -> Vec<f32> {
     if channels <= 1 {
         return interleaved.to_vec();
@@ -233,5 +281,28 @@ mod tests {
         let mono_in = vec![0.5, 0.6, 0.7];
         let out = downmix_to_mono(&mono_in, 1);
         assert_eq!(out, mono_in);
+    }
+
+    #[test]
+    fn denoise_preserves_buffer_length() {
+        // Чуть больше секунды 16kHz — захватывает и полные, и неполные кадры
+        // после ресемплинга на 48kHz.
+        let input: Vec<f32> = (0..17000)
+            .map(|i| (i as f32 * 0.01).sin() * 0.3)
+            .collect();
+        let out = denoise(&input);
+        assert_eq!(out.len(), input.len());
+    }
+
+    #[test]
+    fn denoise_does_not_silence_a_clean_tone() {
+        let sample_rate = 16000.0f32;
+        let freq = 440.0f32;
+        let input: Vec<f32> = (0..16000)
+            .map(|i| (2.0 * std::f32::consts::PI * freq * i as f32 / sample_rate).sin() * 0.5)
+            .collect();
+        let out = denoise(&input);
+        let rms = (out.iter().map(|s| s * s).sum::<f32>() / out.len() as f32).sqrt();
+        assert!(rms > 0.01, "RMS после денойза подозрительно мал: {rms}");
     }
 }

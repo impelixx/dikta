@@ -36,6 +36,7 @@ ureq = { version = "2.10", features = ["tls", "json"] }
 tar = "0.4"
 bzip2 = "0.4"
 whisper-rs = { version = "0.16", default-features = false }
+nnnoiseless = { version = "0.5.2", default-features = false }
 
 # GPU-ускорение через Metal только на macOS — Cargo объединяет фичи с
 # базовым объявлением выше, отдельно объявлять зависимость второй раз не нужно.

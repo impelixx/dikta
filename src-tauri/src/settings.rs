@@ -11,6 +11,8 @@ pub struct AppSettings {
     pub autostop_push_to_talk: bool,
     pub autostop_toggle: bool,
     pub autopaste_enabled: bool,
+    /// Шумоподавление (RNNoise через nnnoiseless) перед распознаванием.
+    pub denoise_enabled: bool,
     pub active_model_id: String,
     pub custom_models: Vec<CustomModel>,
     /// None = устройство ввода по умолчанию в системе
@@ -33,6 +35,7 @@ impl Default for AppSettings {
             autostop_push_to_talk: false,
             autostop_toggle: true,
             autopaste_enabled: true,
+            denoise_enabled: true,
             active_model_id: "giga-ctc-v3".to_string(),
             custom_models: Vec::new(),
             input_device: None,
@@ -68,6 +71,9 @@ impl AppSettings {
         }
         if let Ok(Some(v)) = crate::db::get_setting(conn, "autopaste_enabled") {
             s.autopaste_enabled = v == "true";
+        }
+        if let Ok(Some(v)) = crate::db::get_setting(conn, "denoise_enabled") {
+            s.denoise_enabled = v == "true";
         }
         if let Ok(Some(v)) = crate::db::get_setting(conn, "active_model_id") {
             s.active_model_id = v;

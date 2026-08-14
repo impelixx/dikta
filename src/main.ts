@@ -93,6 +93,8 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "settings.autostopPushDesc": "Дополнительно к отпусканию клавиши",
     "settings.autostopToggle": "Автостоп в toggle",
     "settings.autostopToggleDesc": "Не ждать повторного нажатия",
+    "settings.denoise": "Шумоподавление",
+    "settings.denoiseDesc": "Чистит голос перед распознаванием — проще модели, меньше ошибок в шуме",
     "settings.textInsertion": "Вставка текста",
     "settings.autopaste": "Автовставка в текущее поле",
     "settings.autopasteDesc": "Если недоступна — текст уйдёт в буфер обмена",
@@ -191,6 +193,8 @@ const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "settings.autostopPushDesc": "In addition to releasing the key",
     "settings.autostopToggle": "Auto-stop in toggle",
     "settings.autostopToggleDesc": "Don't wait for a second press",
+    "settings.denoise": "Noise reduction",
+    "settings.denoiseDesc": "Cleans up your voice before recognition — easier for the model, fewer errors in noise",
     "settings.textInsertion": "Text insertion",
     "settings.autopaste": "Auto-paste into the focused field",
     "settings.autopasteDesc": "If unavailable — text goes to the clipboard",
@@ -291,6 +295,7 @@ interface AppSettings {
   autostop_push_to_talk: boolean;
   autostop_toggle: boolean;
   autopaste_enabled: boolean;
+  denoise_enabled: boolean;
   active_model_id: string;
   input_device: string | null;
   theme: string;
@@ -455,6 +460,7 @@ function renderSettings() {
   (document.getElementById("autostop-push") as HTMLInputElement).checked = currentSettings.autostop_push_to_talk;
   (document.getElementById("autostop-toggle") as HTMLInputElement).checked = currentSettings.autostop_toggle;
   (document.getElementById("autopaste") as HTMLInputElement).checked = currentSettings.autopaste_enabled;
+  (document.getElementById("denoise") as HTMLInputElement).checked = currentSettings.denoise_enabled;
   document.querySelectorAll<HTMLButtonElement>("#theme-picker button").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.theme === currentSettings.theme);
   });
@@ -784,6 +790,9 @@ document.getElementById("autostop-push")!.addEventListener("change", (e) => {
 });
 document.getElementById("autostop-toggle")!.addEventListener("change", (e) => {
   setSetting("autostop_toggle", String((e.target as HTMLInputElement).checked));
+});
+document.getElementById("denoise")!.addEventListener("change", (e) => {
+  setSetting("denoise_enabled", String((e.target as HTMLInputElement).checked));
 });
 document.getElementById("autopaste")!.addEventListener("change", (e) => {
   setSetting("autopaste_enabled", String((e.target as HTMLInputElement).checked));

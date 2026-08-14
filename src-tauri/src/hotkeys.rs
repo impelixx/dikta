@@ -134,9 +134,12 @@ fn spawn_partial_transcript_watcher(app: AppHandle) {
             if !still_active {
                 return;
             }
-            let samples = state.audio.snapshot();
+            let mut samples = state.audio.snapshot();
             if samples.len() < 16000 / 2 {
                 continue; // меньше 0.5с — decode не имеет смысла
+            }
+            if state.settings.lock().unwrap().denoise_enabled {
+                samples = crate::audio::denoise(&samples);
             }
             let text = {
                 let recognizer = state.recognizer.lock().unwrap();
@@ -213,10 +216,19 @@ fn stop_recording(app: &AppHandle) {
         app_for_icon.state::<AppState>().processing.load(Ordering::SeqCst)
     });
 
+    // Шумоподавление — только для входа распознавателя; `samples` остаётся
+    // исходным сигналом для оценки качества (signal_quality) и длительности.
+    let denoise_enabled = state.settings.lock().unwrap().denoise_enabled;
+    let decode_input = if denoise_enabled {
+        crate::audio::denoise(&samples)
+    } else {
+        samples.clone()
+    };
+
     let text = {
         let recognizer = state.recognizer.lock().unwrap();
         match recognizer.as_ref() {
-            Some(r) => r.inner.decode(&samples),
+            Some(r) => r.inner.decode(&decode_input),
             None => {
                 let _ = app.emit("no-model-active", ());
                 hide_overlay_after(app.clone(), 2200);
