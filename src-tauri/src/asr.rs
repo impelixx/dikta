@@ -313,16 +313,8 @@ pub enum Recognizer {
 }
 
 impl Recognizer {
-    pub fn new_ctc(paths: CtcPaths, num_threads: i32) -> Result<Self> {
-        Ok(Self::Sherpa(SherpaEngine::new_ctc_with_dim(paths, num_threads, 64)?))
-    }
-
     pub fn new_ctc_with_dim(paths: CtcPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
         Ok(Self::Sherpa(SherpaEngine::new_ctc_with_dim(paths, num_threads, feature_dim)?))
-    }
-
-    pub fn new_transducer(paths: TransducerPaths, num_threads: i32) -> Result<Self> {
-        Ok(Self::Sherpa(SherpaEngine::new_transducer_with_dim(paths, num_threads, 64)?))
     }
 
     pub fn new_transducer_with_dim(paths: TransducerPaths, num_threads: i32, feature_dim: i32) -> Result<Self> {
