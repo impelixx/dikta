@@ -165,6 +165,11 @@
     gap: 14px;
     margin-bottom: 64px;
   }
+  .download-hint {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 14px;
+  }
 
   /* ---------- Signature: живая пилюля ---------- */
   .pill-demo {
@@ -376,7 +381,7 @@
     и без подписки. Распознавание работает целиком на вашем компьютере.
   </p>
   <div class="cta-row">
-    <a class="btn btn-primary" href="#download" data-i18n="hero.cta.download">Скачать для macOS</a>
+    <a class="btn btn-primary" href="#download" id="download-btn-hero" data-i18n="hero.cta.download">Скачать</a>
     <a class="btn btn-ghost" href="#" id="repo-link" data-i18n="hero.cta.repo">Исходный код на GitHub</a>
   </div>
 
@@ -522,7 +527,11 @@
     <div class="final-cta">
       <h2 data-i18n="download.h2">Попробуйте на своих словах</h2>
       <p data-i18n="download.p">Дикта — открытый проект. Соберите его сами или возьмите готовую сборку из релизов на GitHub.</p>
-      <a class="btn btn-primary" href="#" id="repo-link-2" data-i18n="download.cta">Открыть репозиторий</a>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#" id="download-btn-main" data-i18n="download.cta">Скачать последний релиз</a>
+        <a class="btn btn-ghost" href="#" id="repo-link-2" data-i18n="download.repo">Открыть репозиторий</a>
+      </div>
+      <p class="download-hint" id="download-hint" data-i18n="download.hint"></p>
     </div>
   </div>
 </section>
@@ -547,7 +556,7 @@
       "hero.line1": "Говорите.",
       "hero.line2": "Печатает Дикта.",
       "hero.subhead": "Голосовой ввод прямо в любом приложении — по хоткею, без интернета и без подписки. Распознавание работает целиком на вашем компьютере.",
-      "hero.cta.download": "Скачать для macOS",
+      "hero.cta.download": "Скачать",
       "hero.cta.repo": "Исходный код на GitHub",
       "features.eyebrow": "Возможности",
       "features.h2": "Всё, что нужно для диктовки — и ничего лишнего",
@@ -599,7 +608,9 @@
       "models.footnote": "GigaAM специализирован на русском и точнее в деталях; Whisper (через whisper.cpp, с GPU-ускорением) — по-настоящему многоязычная модель в каталоге (~99 языков без переключения). Есть и другие варианты — от NeMo Fast Conformer сразу на 10 языков Европы до Zipformer RU. Плюс можно подключить любую свою sherpa-onnx-совместимую модель с Hugging Face.",
       "download.h2": "Попробуйте на своих словах",
       "download.p": "Дикта — открытый проект. Соберите его сами или возьмите готовую сборку из релизов на GitHub.",
-      "download.cta": "Открыть репозиторий",
+      "download.cta": "Скачать последний релиз",
+      "download.repo": "Открыть репозиторий",
+      "download.hint": "Определяем вашу систему и подбираем нужный файл автоматически.",
       "footer.text": "Дикта использует модели <a href=\"https://github.com/salute-developers/GigaAM\" target=\"_blank\" rel=\"noopener\">GigaAM</a> (Sber) и <a href=\"https://github.com/ggerganov/whisper.cpp\" target=\"_blank\" rel=\"noopener\">Whisper</a> (OpenAI, через whisper.cpp). Само приложение распознаёт речь полностью локально, без отправки аудио куда-либо.",
       "meta.title": "Дикта — локальная диктовка на русском и английском",
       "meta.description": "Дикта — десктоп-приложение для голосового ввода. Гибридное распознавание речи (GigaAM от Sber и Whisper через whisper.cpp с GPU-ускорением) полностью на вашем компьютере, без облака и подписок."
@@ -613,7 +624,7 @@
       "hero.line1": "Speak.",
       "hero.line2": "Dikta types it.",
       "hero.subhead": "Voice input in any app — one hotkey, no internet, no subscription. Recognition runs entirely on your machine.",
-      "hero.cta.download": "Download for macOS",
+      "hero.cta.download": "Download",
       "hero.cta.repo": "Source code on GitHub",
       "features.eyebrow": "Features",
       "features.h2": "Everything you need for dictation — nothing you don't",
@@ -665,7 +676,9 @@
       "models.footnote": "GigaAM is specialized for Russian and more accurate on details; Whisper (via whisper.cpp, GPU-accelerated) is the truly multilingual model in the catalog (~99 languages, no switching). There are other options too — from NeMo Fast Conformer covering 10 European languages at once to Zipformer RU. Plus you can plug in any sherpa-onnx-compatible model from Hugging Face.",
       "download.h2": "Try it with your own words",
       "download.p": "Dikta is open source. Build it yourself or grab a ready-made build from the GitHub releases.",
-      "download.cta": "Open the repository",
+      "download.cta": "Download the latest release",
+      "download.repo": "Open the repository",
+      "download.hint": "We detect your OS and pick the right file automatically.",
       "footer.text": "Dikta uses the <a href=\"https://github.com/salute-developers/GigaAM\" target=\"_blank\" rel=\"noopener\">GigaAM</a> (Sber) and <a href=\"https://github.com/ggerganov/whisper.cpp\" target=\"_blank\" rel=\"noopener\">Whisper</a> (OpenAI, via whisper.cpp) models. The app itself recognizes speech entirely locally, without sending audio anywhere.",
       "meta.title": "Dikta — local dictation in Russian and English",
       "meta.description": "Dikta is a desktop app for voice input. Hybrid speech recognition (GigaAM from Sber and Whisper via GPU-accelerated whisper.cpp) runs entirely on your machine, no cloud, no subscription."
@@ -777,13 +790,60 @@
   }
   loop();
 
-  // Заполните ссылку на репозиторий, когда опубликуете его на GitHub.
   var repoUrl = "https://github.com/impelixx/dikta";
-  if (repoUrl) {
-    document.querySelectorAll("#repo-link, #repo-link-2").forEach(function (a) {
-      a.href = repoUrl;
+  document.querySelectorAll("#repo-link, #repo-link-2").forEach(function (a) {
+    a.href = repoUrl;
+  });
+
+  // Кнопки "Скачать" — резолвим до реальной ссылки на файл нужной платформы
+  // из последнего опубликованного релиза (GitHub Releases API). Пока не
+  // резолвнулось (или релизов ещё нет) — ведут на страницу релизов, а не
+  // в никуда. `releases/latest` игнорирует prerelease/draft, так что сюда
+  // никогда не попадёт "плавающий" latest-билд с каждого коммита в main —
+  // только настоящий версионный релиз.
+  (function () {
+    var downloadBtns = document.querySelectorAll("#download-btn-hero, #download-btn-main");
+    var releasesUrl = repoUrl + "/releases";
+    downloadBtns.forEach(function (a) {
+      a.href = releasesUrl;
     });
-  }
+
+    function platformExtensions() {
+      var raw = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent;
+      var p = raw.toLowerCase();
+      if (p.indexOf("mac") !== -1) return ["dmg"];
+      if (p.indexOf("win") !== -1) return ["msi", "exe"];
+      return ["appimage", "deb"];
+    }
+
+    fetch("https://api.github.com/repos/impelixx/dikta/releases/latest")
+      .then(function (r) {
+        if (!r.ok) throw new Error("no release yet");
+        return r.json();
+      })
+      .then(function (release) {
+        var assets = release.assets || [];
+        var exts = platformExtensions();
+        var asset = null;
+        for (var i = 0; i < exts.length && !asset; i++) {
+          asset = assets.filter(function (a) {
+            return a.name.toLowerCase().indexOf("." + exts[i]) === a.name.length - exts[i].length - 1;
+          })[0];
+        }
+        var target = asset ? asset.browser_download_url : release.html_url || releasesUrl;
+        downloadBtns.forEach(function (a) {
+          a.href = target;
+          a.removeAttribute("target");
+        });
+        var hint = document.getElementById("download-hint");
+        if (hint && asset) {
+          hint.textContent = hint.textContent + " (" + release.tag_name + ", " + asset.name + ")";
+        }
+      })
+      .catch(function () {
+        // релизов ещё нет или GitHub API недоступен — просто остаёмся на /releases
+      });
+  })();
 </script>
 
 </body>

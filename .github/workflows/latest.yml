@@ -1,0 +1,74 @@
+name: Latest build
+
+# Пересобирает и перезаливает "плавающий" пререлиз с тегом `latest` на
+# каждый push в main — чтобы всегда было куда качать самую свежую сборку
+# без необходимости вручную тегировать каждый коммит. Помечен как
+# prerelease, поэтому GitHub API `releases/latest` (используется кнопкой
+# на сайте) его игнорирует и всегда возвращает последний настоящий
+# версионный релиз (см. release.yml) — `latest` виден только тем, кто
+# явно открыл /releases/tag/latest.
+#
+# matrix.max-parallel: 1 — три платформы собираются по очереди, а не
+# параллельно, чтобы не было гонки за создание/апдейт одного и того же
+# GitHub Release с трёх раннеров одновременно.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+          - platform: ubuntu-latest
+            args: ""
+          - platform: windows-latest
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Установить Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Кэш Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Установить Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Системные зависимости (Linux)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libxdo-dev
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Собрать и обновить пререлиз latest
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: latest
+          releaseName: "Дикта — последняя сборка (main)"
+          releaseBody: "Автоматическая сборка последнего коммита в main: ${{ github.sha }}. Может быть нестабильной — для проверенной версии смотрите обычные релизы."
+          releaseDraft: false
+          prerelease: true
+          args: ${{ matrix.args }}
