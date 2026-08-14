@@ -1,12 +1,17 @@
 # На новых macOS SDK (Xcode 26+) сборка ggml-cpu (часть whisper.cpp, тянется
 # транзитивно через whisper-rs) падает: `Accelerate.framework` включает
 # `CoreGraphics.h`, а его enum-объявления конфликтуют с `-Welaborated-enum-base`
-# у актуального Clang. Это проблема самого SDK/ggml, не нашего кода — глушим
-# предупреждение глобально для C/C++ части сборки.
+# у актуального Clang. Это проблема самого SDK/ggml, не нашего кода.
 #
-# Известный риск: на Windows (MSVC) синтаксис флагов другой (-W vs /W).
-# Если сборка под Windows упадёт из-за этого — сузить env до macOS-раннера
-# в .github/workflows или патчить через build.rs конкретной зависимости.
+# ВАЖНО: раньше это было глушение через глобальные CXXFLAGS/CFLAGS — оно
+# сломало сборку на Windows, потому что `cc`-крейт применяет их вообще ко
+# всем C/C++-зависимостям в дереве, включая vswhom-sys (MSVC), а cl.exe не
+# понимает синтаксис `-W...` (падает с "invalid numeric argument"). Вместо
+# этого используем таргет-специфичные имена переменных — `cc`-крейт сам
+# проверяет `<VAR>_<target-triple>` и подхватывает их только при сборке под
+# конкретный триплет, на остальных платформах эти ключи просто не читаются.
 [env]
-CXXFLAGS = "-Wno-elaborated-enum-base"
-CFLAGS = "-Wno-elaborated-enum-base"
+CXXFLAGS_aarch64_apple_darwin = "-Wno-elaborated-enum-base"
+CFLAGS_aarch64_apple_darwin = "-Wno-elaborated-enum-base"
+CXXFLAGS_x86_64_apple_darwin = "-Wno-elaborated-enum-base"
+CFLAGS_x86_64_apple_darwin = "-Wno-elaborated-enum-base"
