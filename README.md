@@ -13,8 +13,12 @@ your machine, no cloud, no subscription. Press the hotkey, speak, and the text
 is already typed into whatever field had focus, in any application.
 
 Under the hood: local ASR models ([GigaAM](https://github.com/salute-developers/GigaAM)
-by Sber, plus Whisper by OpenAI) served through [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)
-directly inside the Rust process — no Python runtime involved. Desktop shell
+by Sber, plus Whisper by OpenAI and NeMo/Zipformer community exports) served
+through a hybrid backend — [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)
+(ONNX Runtime) for CTC/Transducer/Whisper-ONNX models, and
+[whisper.cpp](https://github.com/ggerganov/whisper.cpp) (via `whisper-rs`,
+GGML models, GPU-accelerated through Metal on macOS) for Whisper — both
+directly inside the Rust process, no Python runtime involved. Desktop shell
 built with [Tauri 2](https://tauri.app/) and a thin TypeScript frontend, no
 framework.
 
@@ -39,7 +43,9 @@ framework.
 | **Live captions** | See what you've said while you're still talking — the growing buffer is re-decoded roughly every 900ms |
 | **Floating overlay** | Recording/recognition status on top of any app — no need to switch to the Dikta window |
 | **Auto-paste** | Types into the focused field via the Accessibility API, with a guaranteed clipboard fallback |
-| **6 models in the catalog** | 4 GigaAM v3 variants (CTC/Transducer, ±punctuation) + Whisper base/small — switch on the fly from the tray, with real measured speed |
+| **Noise suppression** | Optional RNNoise-based denoising (`nnnoiseless`, pure Rust) runs on the buffer before recognition — on by default, toggle it in Settings |
+| **Hybrid ASR backend** | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (CTC/Transducer/Whisper-ONNX) and [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (GPU-accelerated via Metal on macOS) side by side, pick per model |
+| **11 models in the catalog** | GigaAM v3 (CTC/Transducer, ±punctuation), Whisper tiny/base/small/medium via whisper.cpp, plus NeMo Conformer (English), Fast Conformer (10 European languages) and Zipformer (Russian) — filterable by language and engine, switch on the fly from the tray, with real measured speed |
 | **Bring your own model** | Any sherpa-onnx-compatible model by Hugging Face repo id |
 | **Microphone selection** | Switch the input device without restarting the app |
 | **Three themes** | Cream/terracotta, mint, lavender |
@@ -66,7 +72,9 @@ npm run tauri build    # production installer build
 
 You'll need to download a model once, right inside the app — on first launch
 there isn't one yet, and the overlay will point you to Settings → "Recognition
-model" → "Download" (roughly 165–380MB depending on which one you pick).
+model" → "Download" (from ~80MB for the smallest Whisper tiny model up to
+~1.5GB for Whisper medium; the Russian GigaAM/Zipformer models sit around
+85–280MB).
 
 ## Usage
 
@@ -96,9 +104,10 @@ and stats (time, words, sessions, a daily activity chart).
 - **Pause before auto-stop** — how long to wait in silence (0.5–4s), shorter for commands, longer for connected speech
 - **Auto-stop in push-to-talk / in toggle** — toggled independently
 - **Auto-paste** — on/off; when off, text goes straight to the clipboard
+- **Noise suppression** — on/off; RNNoise-based denoising applied before recognition (on by default)
 - **Input device** — pick your microphone
 - **Theme** — cream/terracotta, mint, lavender
-- **Recognition model** — the built-in catalog, plus your own Hugging Face models
+- **Recognition model** — the built-in catalog (filterable by language and engine via dropdowns), plus your own Hugging Face models
 
 All settings live in SQLite in the app's standard data directory
 (`~/Library/Application Support/dikta` on macOS), alongside the history.
@@ -123,9 +132,10 @@ src/overlay.ts          floating overlay frontend
 src-tauri/src/
   lib.rs                 entry point, tray, windows, command routing
   hotkeys.rs             push-to-talk/toggle, live captions, VAD watcher
-  audio.rs               cpal wrapper, resampling, buffer snapshots
-  asr.rs                 FFI wrapper over sherpa-rs-sys (CTC, Transducer, Whisper)
-  models.rs              model catalog, downloads, custom HF models
+  audio.rs               cpal wrapper, resampling, buffer snapshots, RNNoise denoising
+  asr.rs                 hybrid recognizer: sherpa-rs-sys (CTC, Transducer, Whisper-ONNX)
+                          and whisper-rs/whisper.cpp (GPU via Metal on macOS)
+  models.rs              model catalog (sherpa-onnx + whisper.cpp entries), downloads, custom HF models
   db.rs                  SQLite: history, stats, settings
   paste.rs               auto-paste + unconditional clipboard fallback
   vad.rs                 silence detector based on RMS energy
@@ -138,10 +148,13 @@ Data flow while dictating: hotkey → `AudioEngine::start` (the cpal stream is
 already open for the app's entire lifetime; start/stop just toggles whether
 samples get pushed into the buffer) → in parallel, a VAD watcher (auto-stop),
 a level watcher (waveform in the UI), and a partial-transcript watcher (live
-captions) all run → on completion, `Recognizer::decode` (sherpa-onnx, offline
-CTC/Transducer/Whisper) → `paste::insert_text` (Accessibility + unconditional
-clipboard write) → the entry is saved to SQLite → events fan out to every
-window (`main` and `overlay`) through the Tauri event system.
+captions) all run → on completion, the buffer is optionally denoised
+(RNNoise via `nnnoiseless`) → `Recognizer::decode`, routed to sherpa-onnx
+(offline CTC/Transducer/Whisper-ONNX) or whisper.cpp (GPU-accelerated via
+Metal on macOS) depending on the selected model's engine →
+`paste::insert_text` (Accessibility + unconditional clipboard write) → the
+entry is saved to SQLite → events fan out to every window (`main` and
+`overlay`) through the Tauri event system.
 
 More detail in [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -160,9 +173,11 @@ cd .. && npm run build
 ```
 
 CI (`.github/workflows/ci.yml`) runs the same checks on push and PR. Releases
-(`.github/workflows/release.yml`) build on tag `vX.Y.Z` for macOS (universal),
-Windows, and Linux via `tauri-action`, publishing a draft GitHub Release. More
-detail in [CONTRIBUTING.md](CONTRIBUTING.md).
+(`.github/workflows/release.yml`) build on tag `vX.Y.Z` for macOS (universal,
+packaged as a `.dmg` with an `/Applications` shortcut), Windows, and Linux
+(requires `libxdo-dev` for clipboard/paste emulation via `enigo`) via
+`tauri-action`, publishing a draft GitHub Release. More detail in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## FAQ
 
@@ -174,10 +189,14 @@ periodic re-decode of the growing buffer (every ~900ms) reads as live
 captions without needing a different architecture.
 
 **Can I use a language other than Russian?**
-The default catalog includes Whisper (multilingual, ~99 languages) alongside
-GigaAM (Russian-only, but noticeably more accurate on Russian). You can also
+The default catalog includes Whisper (multilingual, ~99 languages, via
+whisper.cpp) alongside GigaAM (Russian-only, but noticeably more accurate on
+Russian), an English-only NeMo Conformer, a Fast Conformer covering 10
+European languages (Belarusian, German, English, Spanish, French, Croatian,
+Italian, Polish, Russian, Ukrainian), and a Russian-only Zipformer. Filter
+the catalog by language or engine right from the dropdowns in Settings, or
 add any other sherpa-onnx-compatible offline CTC/Transducer model via a
-Hugging Face repo id in Settings.
+Hugging Face repo id.
 
 **The app doesn't show up in the Dock — how do I open it?**
 It's intentionally tray-only (menu bar icon on macOS / tray on Windows).

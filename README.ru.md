@@ -13,9 +13,13 @@ Push-to-talk диктовка на русском языке — распозн�
 в поле, где стоял курсор, в любом приложении.
 
 Под капотом — локальные ASR-модели ([GigaAM](https://github.com/salute-developers/GigaAM)
-от Sber и Whisper от OpenAI), запущенные через [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)
-прямо в Rust-процессе, без Python-рантайма. Десктоп-обвязка на [Tauri 2](https://tauri.app/)
-+ тонкий TypeScript-фронт без фреймворков.
+от Sber, Whisper от OpenAI и модели сообщества NeMo/Zipformer), запущенные
+через гибридный бэкенд: [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)
+(ONNX Runtime) — для CTC/Transducer/Whisper-ONNX моделей, и
+[whisper.cpp](https://github.com/ggerganov/whisper.cpp) (через `whisper-rs`,
+GGML-модели, GPU-ускорение через Metal на macOS) — для Whisper. Оба движка
+работают прямо в Rust-процессе, без Python-рантайма. Десктоп-обвязка на
+[Tauri 2](https://tauri.app/) + тонкий TypeScript-фронт без фреймворков.
 
 ## Содержание
 
@@ -38,7 +42,9 @@ Push-to-talk диктовка на русском языке — распозн�
 | **Живые субтитры** | Уже наговоренное видно прямо во время речи — растущий буфер передекодируется каждые ~900мс |
 | **Плавающий оверлей** | Статус записи/распознавания поверх любого приложения — не нужно переключаться на окно Дикты |
 | **Автовставка текста** | В фокусное поле через Accessibility API, с гарантированным fallback в буфер обмена |
-| **6 моделей в каталоге** | 4 варианта GigaAM v3 (CTC/Transducer, ±пунктуация) + Whisper base/small — переключаются на лету из трея, с реальными замерами скорости |
+| **Шумоподавление** | Опциональное подавление шума на основе RNNoise (`nnnoiseless`, чистый Rust) перед распознаванием — включено по умолчанию, переключается в Настройках |
+| **Гибридный ASR-бэкенд** | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (CTC/Transducer/Whisper-ONNX) и [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (GPU-ускорение через Metal на macOS) бок о бок, выбор движка — по модели |
+| **11 моделей в каталоге** | GigaAM v3 (CTC/Transducer, ±пунктуация), Whisper tiny/base/small/medium через whisper.cpp, а также NeMo Conformer (английский), Fast Conformer (10 европейских языков) и Zipformer (русский) — фильтруются по языку и движку, переключаются на лету из трея, с реальными замерами скорости |
 | **Свои модели с Hugging Face** | Любая sherpa-onnx-совместимая модель по repo id |
 | **Выбор микрофона** | Переключение устройства ввода без перезапуска приложения |
 | **Три темы** | Крем/терракота, мятная, лавандовая |
@@ -66,7 +72,9 @@ npm run tauri build    # production-сборка инсталлятора
 
 Модель нужно скачать один раз прямо в приложении — при первом запуске
 достаточной модели ещё нет, оверлей покажет подсказку зайти в Настройки →
-«Модель распознавания» → «Скачать» (≈165–380МБ в зависимости от выбранной).
+«Модель распознавания» → «Скачать» (от ~80МБ для самой маленькой Whisper tiny
+до ~1.5ГБ для Whisper medium; русские модели GigaAM/Zipformer — около
+85–280МБ).
 
 ## Как пользоваться
 
@@ -97,9 +105,10 @@ npm run tauri build    # production-сборка инсталлятора
   длиннее для связной речи
 - **Автостоп в push-to-talk / в toggle** — включаются независимо
 - **Автовставка** — вкл/выкл, при выключенной текст сразу уходит в буфер
+- **Шумоподавление** — вкл/выкл, подавление шума на основе RNNoise перед распознаванием (включено по умолчанию)
 - **Устройство ввода** — выбор микрофона
 - **Тема** — крем/терракота, мятная, лавандовая
-- **Модель распознавания** — каталог + свои модели с Hugging Face
+- **Модель распознавания** — каталог (фильтруется по языку и движку выпадающими списками) + свои модели с Hugging Face
 
 Все настройки хранятся в SQLite в стандартной директории данных приложения
 (`~/Library/Application Support/dikta` на macOS) вместе с историей записей.
@@ -124,9 +133,10 @@ src/overlay.ts          фронтенд плавающего оверлея
 src-tauri/src/
   lib.rs                 точка входа, трей, окна, роутинг команд
   hotkeys.rs             push-to-talk/toggle, живые субтитры, VAD-watcher
-  audio.rs               cpal-обвязка, ресемплинг, снапшоты буфера
-  asr.rs                 FFI-обёртка sherpa-rs-sys (CTC, Transducer, Whisper)
-  models.rs              каталог моделей, скачивание, кастомные HF-модели
+  audio.rs               cpal-обвязка, ресемплинг, снапшоты буфера, RNNoise-шумоподавление
+  asr.rs                 гибридный распознаватель: sherpa-rs-sys (CTC, Transducer, Whisper-ONNX)
+                          и whisper-rs/whisper.cpp (GPU через Metal на macOS)
+  models.rs              каталог моделей (sherpa-onnx + whisper.cpp), скачивание, кастомные HF-модели
   db.rs                  SQLite: история, статистика, настройки
   paste.rs               автовставка + безусловный fallback в буфер
   vad.rs                 детектор тишины по RMS-энергии
@@ -138,10 +148,13 @@ site/                  промо-страница (статика, публик
 Поток данных при диктовке: хоткей → `AudioEngine::start` (cpal-поток уже открыт
 на всё время жизни приложения, start/stop только переключают запись сэмплов в
 буфер) → параллельно текут VAD-watcher (автостоп), level-watcher (волна в UI) и
-partial-transcript-watcher (живые субтитры) → по завершении `Recognizer::decode`
-(sherpa-onnx, offline CTC/Transducer/Whisper) → `paste::insert_text` (Accessibility +
-безусловная запись в буфер) → запись сохраняется в SQLite → события уходят во
-все окна (`main` и `overlay`) через Tauri event system.
+partial-transcript-watcher (живые субтитры) → по завершении буфер опционально
+проходит через шумоподавление (RNNoise через `nnnoiseless`) → `Recognizer::decode`,
+маршрутизируется в sherpa-onnx (offline CTC/Transducer/Whisper-ONNX) или
+whisper.cpp (GPU-ускорение через Metal на macOS) в зависимости от движка
+выбранной модели → `paste::insert_text` (Accessibility + безусловная запись в
+буфер) → запись сохраняется в SQLite → события уходят во все окна (`main` и
+`overlay`) через Tauri event system.
 
 Подробнее — в [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -161,8 +174,10 @@ cd .. && npm run build
 
 CI (`.github/workflows/ci.yml`) гоняет то же самое на push и PR. Релизы
 (`.github/workflows/release.yml`) собираются по тегу `vX.Y.Z` под macOS
-(universal), Windows и Linux через `tauri-action` и публикуются черновиком
-GitHub Release. Подробности — в [CONTRIBUTING.md](CONTRIBUTING.md).
+(universal, упаковка в `.dmg` с ярлыком на `/Applications`), Windows и Linux
+(нужен `libxdo-dev` для эмуляции вставки текста через `enigo`) через
+`tauri-action` и публикуются черновиком GitHub Release. Подробности — в
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Частые вопросы
 
@@ -174,10 +189,14 @@ GitHub Release. Подробности — в [CONTRIBUTING.md](CONTRIBUTING.md)
 живые субтитры, не требуя другой архитектуры.
 
 **Можно ли использовать не русский язык?**
-В каталоге по умолчанию есть Whisper (многоязычный, ~99 языков) наряду с
-GigaAM (только русский, но заметно точнее на русском). Можно подключить и
-любую другую sherpa-onnx-совместимую offline CTC/Transducer модель через
-Hugging Face repo id в Настройках.
+В каталоге по умолчанию есть Whisper (многоязычный, ~99 языков, через
+whisper.cpp) наряду с GigaAM (только русский, но заметно точнее на русском),
+англоязычный NeMo Conformer, Fast Conformer на 10 европейских языков
+(белорусский, немецкий, английский, испанский, французский, хорватский,
+итальянский, польский, русский, украинский) и русскоязычный Zipformer.
+Фильтруйте каталог по языку или движку прямо в выпадающих списках Настроек,
+либо подключите любую другую sherpa-onnx-совместимую offline CTC/Transducer
+модель через Hugging Face repo id.
 
 **Приложение не появляется в Dock — как его открыть?**
 Оно намеренно живёт только в трее (иконка в строке меню на macOS / трее на
