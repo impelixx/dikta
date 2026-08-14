@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Дикта — локальная диктовка на русском</title>
-<meta name="description" content="Дикта — десктоп-приложение для голосового ввода на русском языке. Распознавание речи GigaAM (Sber) полностью на вашем компьютере, без облака и подписок." />
+<title>Дикта — локальная диктовка на русском и английском</title>
+<meta name="description" content="Дикта — десктоп-приложение для голосового ввода. Гибридное распознавание речи (GigaAM от Sber и Whisper через whisper.cpp с GPU-ускорением) полностью на вашем компьютере, без облака и подписок." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23c9795f%22/><text x=%2250%22 y=%2268%22 font-size=%2260%22 font-family=%22Georgia,serif%22 fill=%22%23f6eee2%22 text-anchor=%22middle%22>Д</text></svg>" />
 <style>
   @import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap");
@@ -59,6 +59,7 @@
     align-items: center;
     justify-content: space-between;
     height: 64px;
+    gap: 18px;
   }
   .brand {
     display: flex;
@@ -86,6 +87,11 @@
     color: var(--ink-soft);
   }
   nav.links a:hover { color: var(--terracotta-deep); }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
   .btn {
     display: inline-flex;
     align-items: center;
@@ -109,6 +115,24 @@
     color: var(--ink);
   }
   .btn-ghost:hover { border-color: var(--terracotta); color: var(--terracotta-deep); }
+
+  #lang-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 34px;
+    border-radius: 999px;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+  #lang-toggle:hover { border-color: var(--terracotta); color: var(--terracotta-deep); }
 
   /* ---------- Hero ---------- */
   .hero {
@@ -294,6 +318,7 @@
     font-size: 11px;
     color: var(--good);
   }
+  .tag.muted { color: var(--ink-soft); }
 
   /* ---------- Footer / CTA ---------- */
   .final-cta {
@@ -332,24 +357,27 @@
   <div class="wrap">
     <div class="brand"><span class="mark">Д</span> Дикта</div>
     <nav class="links">
-      <a href="#features">Возможности</a>
-      <a href="#how">Как это работает</a>
-      <a href="#models">Модели</a>
+      <a href="#features" data-i18n="nav.features">Возможности</a>
+      <a href="#how" data-i18n="nav.how">Как это работает</a>
+      <a href="#models" data-i18n="nav.models">Модели</a>
     </nav>
-    <a class="btn btn-primary" href="#download">Скачать</a>
+    <div class="nav-right">
+      <button id="lang-toggle" title="Switch language / Переключить язык">RU</button>
+      <a class="btn btn-primary" href="#download" data-i18n="nav.download">Скачать</a>
+    </div>
   </div>
 </header>
 
 <section class="hero wrap">
-  <div class="eyebrow">Локальная диктовка · GigaAM (Sber)</div>
-  <h1 class="title">Говорите.<br/>Печатает Дикта.</h1>
-  <p class="subhead">
-    Голосовой ввод на русском прямо в любом приложении — по хоткею, без интернета
+  <div class="eyebrow" data-i18n="hero.eyebrow">Локальная диктовка · GigaAM + Whisper</div>
+  <h1 class="title"><span data-i18n="hero.line1">Говорите.</span><br/><span data-i18n="hero.line2">Печатает Дикта.</span></h1>
+  <p class="subhead" data-i18n="hero.subhead">
+    Голосовой ввод прямо в любом приложении — по хоткею, без интернета
     и без подписки. Распознавание работает целиком на вашем компьютере.
   </p>
   <div class="cta-row">
-    <a class="btn btn-primary" href="#download">Скачать для macOS</a>
-    <a class="btn btn-ghost" href="#" id="repo-link">Исходный код на GitHub</a>
+    <a class="btn btn-primary" href="#download" data-i18n="hero.cta.download">Скачать для macOS</a>
+    <a class="btn btn-ghost" href="#" id="repo-link" data-i18n="hero.cta.repo">Исходный код на GitHub</a>
   </div>
 
   <div class="pill-demo">
@@ -361,45 +389,50 @@
 <section id="features">
   <div class="wrap">
     <div class="section-head">
-      <div class="eyebrow">Возможности</div>
-      <h2>Всё, что нужно для диктовки — и ничего лишнего</h2>
-      <p>Каждая функция здесь потому, что ей реально пользуются во время работы, а не потому что «так принято».</p>
+      <div class="eyebrow" data-i18n="features.eyebrow">Возможности</div>
+      <h2 data-i18n="features.h2">Всё, что нужно для диктовки — и ничего лишнего</h2>
+      <p data-i18n="features.p">Каждая функция здесь потому, что ей реально пользуются во время работы, а не потому что «так принято».</p>
     </div>
     <div class="grid">
       <div class="card">
         <div class="icon">⌨</div>
-        <h3>Push-to-talk и toggle</h3>
-        <p>Держите клавишу, пока говорите, или включайте запись одним нажатием — оба режима настраиваются под вашу руку.</p>
+        <h3 data-i18n="feat.hotkey.title">Push-to-talk и toggle</h3>
+        <p data-i18n="feat.hotkey.desc">Держите клавишу, пока говорите, или включайте запись одним нажатием — оба режима настраиваются под вашу руку.</p>
       </div>
       <div class="card">
         <div class="icon">◐</div>
-        <h3>Автостоп по тишине</h3>
-        <p>Регулируемая чувствительность — от «шёпот — тишина» до «стройка». Запись сама остановится, когда вы закончили.</p>
+        <h3 data-i18n="feat.autostop.title">Автостоп по тишине</h3>
+        <p data-i18n="feat.autostop.desc">Регулируемая чувствительность — от «шёпот — тишина» до «стройка». Запись сама остановится, когда вы закончили.</p>
       </div>
       <div class="card">
         <div class="icon">≋</div>
-        <h3>Живые субтитры</h3>
-        <p>Уже наговоренное видно прямо во время речи — в плавающей подсказке поверх любого приложения.</p>
+        <h3 data-i18n="feat.live.title">Живые субтитры</h3>
+        <p data-i18n="feat.live.desc">Уже наговоренное видно прямо во время речи — в плавающей подсказке поверх любого приложения.</p>
       </div>
       <div class="card">
         <div class="icon">⇄</div>
-        <h3>6 моделей на выбор</h3>
-        <p>GigaAM (CTC/Transducer, ±пунктуация) и Whisper — переключаются в трее в один клик. Плюс любая своя модель с Hugging Face.</p>
+        <h3 data-i18n="feat.models.title">11 моделей на выбор</h3>
+        <p data-i18n="feat.models.desc">GigaAM (CTC/Transducer, ±пунктуация) и Whisper через whisper.cpp с GPU-ускорением — переключаются в трее в один клик. Плюс любая своя модель с Hugging Face.</p>
+      </div>
+      <div class="card">
+        <div class="icon">✺</div>
+        <h3 data-i18n="feat.denoise.title">Шумоподавление</h3>
+        <p data-i18n="feat.denoise.desc">Встроенное RNNoise-шумоподавление чистит звук с микрофона перед распознаванием — меньше ошибок в шумной комнате.</p>
       </div>
       <div class="card">
         <div class="icon">⌘</div>
-        <h3>Только в трее</h3>
-        <p>Не занимает Dock и панель задач. Открывается по клику на иконку, когда действительно нужно.</p>
+        <h3 data-i18n="feat.tray.title">Только в трее</h3>
+        <p data-i18n="feat.tray.desc">Не занимает Dock и панель задач. Открывается по клику на иконку, когда действительно нужно.</p>
       </div>
       <div class="card">
         <div class="icon">◔</div>
-        <h3>История и статистика</h3>
-        <p>Поиск по всему, что вы наговорили, и графики активности по дням — без выдуманных метрик.</p>
+        <h3 data-i18n="feat.history.title">История и статистика</h3>
+        <p data-i18n="feat.history.desc">Поиск по всему, что вы наговорили, и графики активности по дням — без выдуманных метрик.</p>
       </div>
       <div class="card">
         <div class="icon">A/Я</div>
-        <h3>Интерфейс на русском и английском</h3>
-        <p>Переключается в один клик, без перезапуска — само распознавание при этом остаётся заточено под русскую речь (или любую другую, если подключить свою модель).</p>
+        <h3 data-i18n="feat.lang.title">Интерфейс на русском и английском</h3>
+        <p data-i18n="feat.lang.desc">Переключается в один клик, без перезапуска — а распознавание можно выбрать под нужный язык из каталога моделей.</p>
       </div>
     </div>
   </div>
@@ -408,24 +441,24 @@
 <section id="how" style="background:var(--cream-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
   <div class="wrap">
     <div class="section-head">
-      <div class="eyebrow">Как это работает</div>
-      <h2>От нажатия клавиши до готового текста</h2>
+      <div class="eyebrow" data-i18n="how.eyebrow">Как это работает</div>
+      <h2 data-i18n="how.h2">От нажатия клавиши до готового текста</h2>
     </div>
     <div class="steps">
       <div class="step">
         <div class="num">1</div>
-        <h3>Нажмите хоткей</h3>
-        <p>В любом приложении — почтовом клиенте, чате, редакторе. Дикта слушает в фоне.</p>
+        <h3 data-i18n="step1.title">Нажмите хоткей</h3>
+        <p data-i18n="step1.desc">В любом приложении — почтовом клиенте, чате, редакторе. Дикта слушает в фоне.</p>
       </div>
       <div class="step">
         <div class="num">2</div>
-        <h3>Говорите</h3>
-        <p>Текст появляется живьём в плавающей подсказке. Автостоп сам поймает паузу, если включите его.</p>
+        <h3 data-i18n="step2.title">Говорите</h3>
+        <p data-i18n="step2.desc">Текст появляется живьём в плавающей подсказке. Автостоп сам поймает паузу, если включите его.</p>
       </div>
       <div class="step">
         <div class="num">3</div>
-        <h3>Текст уже вставлен</h3>
-        <p>Распознанное автоматически печатается в поле, где стоит курсор. Если недоступно — уходит в буфер обмена.</p>
+        <h3 data-i18n="step3.title">Текст уже вставлен</h3>
+        <p data-i18n="step3.desc">Распознанное автоматически печатается в поле, где стоит курсор. Если недоступно — уходит в буфер обмена.</p>
       </div>
     </div>
   </div>
@@ -434,37 +467,52 @@
 <section id="models">
   <div class="wrap">
     <div class="section-head">
-      <div class="eyebrow">6 моделей в каталоге</div>
-      <h2>Реальные замеры, не маркетинг</h2>
-      <p>Скорость декодирования измерена локально (M-серия Mac) на тестовой записи — на вашей машине цифры будут другими, но порядок сохранится.</p>
+      <div class="eyebrow" data-i18n="models.eyebrow">11 моделей в каталоге</div>
+      <h2 data-i18n="models.h2">Реальные замеры, не маркетинг</h2>
+      <p data-i18n="models.p">Скорость декодирования измерена локально (M-серия Mac) на тестовой записи — на вашей машине цифры будут другими, но порядок сохранится.</p>
     </div>
     <div class="model-table">
       <div class="model-row head">
-        <span>Модель</span><span>Тип</span><span>Пунктуация</span><span>Скорость</span>
+        <span data-i18n="table.model">Модель</span><span data-i18n="table.type">Тип</span><span data-i18n="table.punct">Пунктуация</span><span data-i18n="table.speed">Скорость</span>
       </div>
       <div class="model-row">
-        <span class="name">GigaAM-CTC v3</span><span>CTC</span><span>—</span><span class="tag">×12 реального времени</span>
+        <span class="name" data-i18n="model.giga-ctc-v3">GigaAM-CTC v3</span><span>CTC</span><span>—</span><span class="tag">×12 <span data-i18n="table.rt">реального времени</span></span>
       </div>
       <div class="model-row">
-        <span class="name">GigaAM-CTC v3 + пунктуация</span><span>CTC</span><span class="tag">есть</span><span class="tag">×12 реального времени</span>
+        <span class="name" data-i18n="model.giga-ctc-punct-v3">GigaAM-CTC v3 + пунктуация</span><span>CTC</span><span class="tag" data-i18n="table.yes">есть</span><span class="tag">×12 <span data-i18n="table.rt">реального времени</span></span>
       </div>
       <div class="model-row">
-        <span class="name">GigaAM-Transducer v3</span><span>Transducer</span><span>—</span><span class="tag">×12 реального времени</span>
+        <span class="name" data-i18n="model.giga-transducer-v3">GigaAM-Transducer v3</span><span>Transducer</span><span>—</span><span class="tag">×12 <span data-i18n="table.rt">реального времени</span></span>
       </div>
       <div class="model-row">
-        <span class="name">GigaAM-Transducer v3 + пунктуация</span><span>Transducer</span><span class="tag">есть</span><span class="tag">×12 реального времени</span>
+        <span class="name" data-i18n="model.giga-transducer-punct-v3">GigaAM-Transducer v3 + пунктуация</span><span>Transducer</span><span class="tag" data-i18n="table.yes">есть</span><span class="tag">×12 <span data-i18n="table.rt">реального времени</span></span>
       </div>
       <div class="model-row">
-        <span class="name">Whisper base (OpenAI)</span><span>Whisper</span><span class="tag">есть</span><span class="tag">×12 реального времени</span>
+        <span class="name" data-i18n="model.whisper-cpp-tiny">Whisper tiny (whisper.cpp, GPU)</span><span>Whisper</span><span class="tag" data-i18n="table.yes">есть</span><span class="tag muted">—</span>
       </div>
       <div class="model-row">
-        <span class="name">Whisper small (OpenAI)</span><span>Whisper</span><span class="tag">есть</span><span class="tag">×4 реального времени</span>
+        <span class="name" data-i18n="model.whisper-cpp-base">Whisper base (whisper.cpp, GPU)</span><span>Whisper</span><span class="tag" data-i18n="table.yes">есть</span><span class="tag">×64 <span data-i18n="table.rt">реального времени</span></span>
+      </div>
+      <div class="model-row">
+        <span class="name" data-i18n="model.whisper-cpp-small">Whisper small (whisper.cpp, GPU)</span><span>Whisper</span><span class="tag" data-i18n="table.yes">есть</span><span class="tag">×23 <span data-i18n="table.rt">реального времени</span></span>
+      </div>
+      <div class="model-row">
+        <span class="name" data-i18n="model.whisper-cpp-medium">Whisper medium (whisper.cpp, GPU)</span><span>Whisper</span><span class="tag" data-i18n="table.yes">есть</span><span class="tag muted">—</span>
+      </div>
+      <div class="model-row">
+        <span class="name" data-i18n="model.fast-conformer">Fast Conformer (10 языков Европы)</span><span>CTC</span><span>—</span><span class="tag">×37 <span data-i18n="table.rt">реального времени</span></span>
+      </div>
+      <div class="model-row">
+        <span class="name" data-i18n="model.zipformer-ru">Zipformer RU (Vosk)</span><span>Transducer</span><span>—</span><span class="tag">×77 <span data-i18n="table.rt">реального времени</span></span>
+      </div>
+      <div class="model-row">
+        <span class="name" data-i18n="model.nemo-en">NeMo Conformer-CTC medium (English)</span><span>CTC</span><span>—</span><span class="tag muted">—</span>
       </div>
     </div>
-    <p style="margin-top:18px; font-size:13.5px; color:var(--ink-soft);">
-      GigaAM специализирован на русском и точнее в деталях; Whisper — единственная по-настоящему
-      многоязычная модель в каталоге (~99 языков без переключения). Плюс можно подключить
-      любую свою sherpa-onnx-совместимую модель с Hugging Face.
+    <p style="margin-top:18px; font-size:13.5px; color:var(--ink-soft);" data-i18n="models.footnote">
+      GigaAM специализирован на русском и точнее в деталях; Whisper (через whisper.cpp, с GPU-ускорением) — по-настоящему
+      многоязычная модель в каталоге (~99 языков без переключения). Есть и другие варианты — от NeMo Fast Conformer сразу
+      на 10 языков Европы до Zipformer RU. Плюс можно подключить любую свою sherpa-onnx-совместимую модель с Hugging Face.
     </p>
   </div>
 </section>
@@ -472,38 +520,230 @@
 <section id="download">
   <div class="wrap">
     <div class="final-cta">
-      <h2>Попробуйте на своих словах</h2>
-      <p>Дикта — открытый проект. Соберите его сами или возьмите готовую сборку из релизов на GitHub.</p>
-      <a class="btn btn-primary" href="#" id="repo-link-2">Открыть репозиторий</a>
+      <h2 data-i18n="download.h2">Попробуйте на своих словах</h2>
+      <p data-i18n="download.p">Дикта — открытый проект. Соберите его сами или возьмите готовую сборку из релизов на GitHub.</p>
+      <a class="btn btn-primary" href="#" id="repo-link-2" data-i18n="download.cta">Открыть репозиторий</a>
     </div>
   </div>
 </section>
 
 <footer>
-  <div class="wrap">
-    Дикта использует модель <a href="https://github.com/salute-developers/GigaAM" target="_blank" rel="noopener">GigaAM</a> (Sber),
-    лицензия модели — некоммерческая. Само приложение распознаёт речь полностью локально, без отправки аудио куда-либо.
+  <div class="wrap" data-i18n="footer.text">
+    Дикта использует модели <a href="https://github.com/salute-developers/GigaAM" target="_blank" rel="noopener">GigaAM</a> (Sber)
+    и <a href="https://github.com/ggerganov/whisper.cpp" target="_blank" rel="noopener">Whisper</a> (OpenAI, через whisper.cpp).
+    Само приложение распознаёт речь полностью локально, без отправки аудио куда-либо.
   </div>
 </footer>
 
 <script>
-  const phrases = [
-    "у лукоморья дуб зелёный",
-    "встреча перенесена на пятницу",
-    "запиши это в заметки",
-    "спасибо, всё получил",
-  ];
-  const el = document.getElementById("demo-text");
-  let phraseIndex = 0;
+  // ---------- i18n ----------
+  var TRANSLATIONS = {
+    ru: {
+      "nav.features": "Возможности",
+      "nav.how": "Как это работает",
+      "nav.models": "Модели",
+      "nav.download": "Скачать",
+      "hero.eyebrow": "Локальная диктовка · GigaAM + Whisper",
+      "hero.line1": "Говорите.",
+      "hero.line2": "Печатает Дикта.",
+      "hero.subhead": "Голосовой ввод прямо в любом приложении — по хоткею, без интернета и без подписки. Распознавание работает целиком на вашем компьютере.",
+      "hero.cta.download": "Скачать для macOS",
+      "hero.cta.repo": "Исходный код на GitHub",
+      "features.eyebrow": "Возможности",
+      "features.h2": "Всё, что нужно для диктовки — и ничего лишнего",
+      "features.p": "Каждая функция здесь потому, что ей реально пользуются во время работы, а не потому что «так принято».",
+      "feat.hotkey.title": "Push-to-talk и toggle",
+      "feat.hotkey.desc": "Держите клавишу, пока говорите, или включайте запись одним нажатием — оба режима настраиваются под вашу руку.",
+      "feat.autostop.title": "Автостоп по тишине",
+      "feat.autostop.desc": "Регулируемая чувствительность — от «шёпот — тишина» до «стройка». Запись сама остановится, когда вы закончили.",
+      "feat.live.title": "Живые субтитры",
+      "feat.live.desc": "Уже наговоренное видно прямо во время речи — в плавающей подсказке поверх любого приложения.",
+      "feat.models.title": "11 моделей на выбор",
+      "feat.models.desc": "GigaAM (CTC/Transducer, ±пунктуация) и Whisper через whisper.cpp с GPU-ускорением — переключаются в трее в один клик. Плюс любая своя модель с Hugging Face.",
+      "feat.denoise.title": "Шумоподавление",
+      "feat.denoise.desc": "Встроенное RNNoise-шумоподавление чистит звук с микрофона перед распознаванием — меньше ошибок в шумной комнате.",
+      "feat.tray.title": "Только в трее",
+      "feat.tray.desc": "Не занимает Dock и панель задач. Открывается по клику на иконку, когда действительно нужно.",
+      "feat.history.title": "История и статистика",
+      "feat.history.desc": "Поиск по всему, что вы наговорили, и графики активности по дням — без выдуманных метрик.",
+      "feat.lang.title": "Интерфейс на русском и английском",
+      "feat.lang.desc": "Переключается в один клик, без перезапуска — а распознавание можно выбрать под нужный язык из каталога моделей.",
+      "how.eyebrow": "Как это работает",
+      "how.h2": "От нажатия клавиши до готового текста",
+      "step1.title": "Нажмите хоткей",
+      "step1.desc": "В любом приложении — почтовом клиенте, чате, редакторе. Дикта слушает в фоне.",
+      "step2.title": "Говорите",
+      "step2.desc": "Текст появляется живьём в плавающей подсказке. Автостоп сам поймает паузу, если включите его.",
+      "step3.title": "Текст уже вставлен",
+      "step3.desc": "Распознанное автоматически печатается в поле, где стоит курсор. Если недоступно — уходит в буфер обмена.",
+      "models.eyebrow": "11 моделей в каталоге",
+      "models.h2": "Реальные замеры, не маркетинг",
+      "models.p": "Скорость декодирования измерена локально (M-серия Mac) на тестовой записи — на вашей машине цифры будут другими, но порядок сохранится.",
+      "table.model": "Модель",
+      "table.type": "Тип",
+      "table.punct": "Пунктуация",
+      "table.speed": "Скорость",
+      "table.yes": "есть",
+      "table.rt": "реального времени",
+      "model.giga-ctc-v3": "GigaAM-CTC v3",
+      "model.giga-ctc-punct-v3": "GigaAM-CTC v3 + пунктуация",
+      "model.giga-transducer-v3": "GigaAM-Transducer v3",
+      "model.giga-transducer-punct-v3": "GigaAM-Transducer v3 + пунктуация",
+      "model.whisper-cpp-tiny": "Whisper tiny (whisper.cpp, GPU)",
+      "model.whisper-cpp-base": "Whisper base (whisper.cpp, GPU)",
+      "model.whisper-cpp-small": "Whisper small (whisper.cpp, GPU)",
+      "model.whisper-cpp-medium": "Whisper medium (whisper.cpp, GPU)",
+      "model.fast-conformer": "Fast Conformer (10 языков Европы)",
+      "model.zipformer-ru": "Zipformer RU (Vosk)",
+      "model.nemo-en": "NeMo Conformer-CTC medium (English)",
+      "models.footnote": "GigaAM специализирован на русском и точнее в деталях; Whisper (через whisper.cpp, с GPU-ускорением) — по-настоящему многоязычная модель в каталоге (~99 языков без переключения). Есть и другие варианты — от NeMo Fast Conformer сразу на 10 языков Европы до Zipformer RU. Плюс можно подключить любую свою sherpa-onnx-совместимую модель с Hugging Face.",
+      "download.h2": "Попробуйте на своих словах",
+      "download.p": "Дикта — открытый проект. Соберите его сами или возьмите готовую сборку из релизов на GitHub.",
+      "download.cta": "Открыть репозиторий",
+      "footer.text": "Дикта использует модели <a href=\"https://github.com/salute-developers/GigaAM\" target=\"_blank\" rel=\"noopener\">GigaAM</a> (Sber) и <a href=\"https://github.com/ggerganov/whisper.cpp\" target=\"_blank\" rel=\"noopener\">Whisper</a> (OpenAI, через whisper.cpp). Само приложение распознаёт речь полностью локально, без отправки аудио куда-либо.",
+      "meta.title": "Дикта — локальная диктовка на русском и английском",
+      "meta.description": "Дикта — десктоп-приложение для голосового ввода. Гибридное распознавание речи (GigaAM от Sber и Whisper через whisper.cpp с GPU-ускорением) полностью на вашем компьютере, без облака и подписок."
+    },
+    en: {
+      "nav.features": "Features",
+      "nav.how": "How it works",
+      "nav.models": "Models",
+      "nav.download": "Download",
+      "hero.eyebrow": "Local dictation · GigaAM + Whisper",
+      "hero.line1": "Speak.",
+      "hero.line2": "Dikta types it.",
+      "hero.subhead": "Voice input in any app — one hotkey, no internet, no subscription. Recognition runs entirely on your machine.",
+      "hero.cta.download": "Download for macOS",
+      "hero.cta.repo": "Source code on GitHub",
+      "features.eyebrow": "Features",
+      "features.h2": "Everything you need for dictation — nothing you don't",
+      "features.p": "Every feature here earns its place because people actually use it, not because it's expected.",
+      "feat.hotkey.title": "Push-to-talk and toggle",
+      "feat.hotkey.desc": "Hold a key while you speak, or start/stop recording with a single tap — both modes are configurable to fit your hand.",
+      "feat.autostop.title": "Auto-stop on silence",
+      "feat.autostop.desc": "Adjustable sensitivity — from \"whisper-quiet\" to \"construction site\". Recording stops on its own once you're done.",
+      "feat.live.title": "Live captions",
+      "feat.live.desc": "See what you've said as you say it, in a floating overlay on top of any application.",
+      "feat.models.title": "11 models to choose from",
+      "feat.models.desc": "GigaAM (CTC/Transducer, with or without punctuation) and Whisper via whisper.cpp with GPU acceleration — switch in the tray with one click. Plus any custom model from Hugging Face.",
+      "feat.denoise.title": "Noise suppression",
+      "feat.denoise.desc": "Built-in RNNoise denoising cleans up the microphone signal before recognition — fewer mistakes in a noisy room.",
+      "feat.tray.title": "Tray-only app",
+      "feat.tray.desc": "No Dock or taskbar clutter. Opens from the tray icon exactly when you need it.",
+      "feat.history.title": "History and stats",
+      "feat.history.desc": "Search everything you've ever dictated, plus daily activity charts — no made-up metrics.",
+      "feat.lang.title": "Russian and English interface",
+      "feat.lang.desc": "Switches instantly, no restart required — and recognition itself can be matched to the language you need from the model catalog.",
+      "how.eyebrow": "How it works",
+      "how.h2": "From hotkey press to finished text",
+      "step1.title": "Press the hotkey",
+      "step1.desc": "In any app — mail client, chat, editor. Dikta listens in the background.",
+      "step2.title": "Speak",
+      "step2.desc": "Text appears live in a floating overlay. Auto-stop catches the pause for you, if enabled.",
+      "step3.title": "Text is already inserted",
+      "step3.desc": "The recognized text is typed automatically wherever the cursor is. If that's not possible, it goes to the clipboard.",
+      "models.eyebrow": "11 models in the catalog",
+      "models.h2": "Real benchmarks, not marketing",
+      "models.p": "Decoding speed measured locally (Apple Silicon Mac) on a test recording — numbers will differ on your machine, but the ranking should hold.",
+      "table.model": "Model",
+      "table.type": "Type",
+      "table.punct": "Punctuation",
+      "table.speed": "Speed",
+      "table.yes": "yes",
+      "table.rt": "realtime",
+      "model.giga-ctc-v3": "GigaAM-CTC v3",
+      "model.giga-ctc-punct-v3": "GigaAM-CTC v3 + punctuation",
+      "model.giga-transducer-v3": "GigaAM-Transducer v3",
+      "model.giga-transducer-punct-v3": "GigaAM-Transducer v3 + punctuation",
+      "model.whisper-cpp-tiny": "Whisper tiny (whisper.cpp, GPU)",
+      "model.whisper-cpp-base": "Whisper base (whisper.cpp, GPU)",
+      "model.whisper-cpp-small": "Whisper small (whisper.cpp, GPU)",
+      "model.whisper-cpp-medium": "Whisper medium (whisper.cpp, GPU)",
+      "model.fast-conformer": "Fast Conformer (10 European languages)",
+      "model.zipformer-ru": "Zipformer RU (Vosk)",
+      "model.nemo-en": "NeMo Conformer-CTC medium (English)",
+      "models.footnote": "GigaAM is specialized for Russian and more accurate on details; Whisper (via whisper.cpp, GPU-accelerated) is the truly multilingual model in the catalog (~99 languages, no switching). There are other options too — from NeMo Fast Conformer covering 10 European languages at once to Zipformer RU. Plus you can plug in any sherpa-onnx-compatible model from Hugging Face.",
+      "download.h2": "Try it with your own words",
+      "download.p": "Dikta is open source. Build it yourself or grab a ready-made build from the GitHub releases.",
+      "download.cta": "Open the repository",
+      "footer.text": "Dikta uses the <a href=\"https://github.com/salute-developers/GigaAM\" target=\"_blank\" rel=\"noopener\">GigaAM</a> (Sber) and <a href=\"https://github.com/ggerganov/whisper.cpp\" target=\"_blank\" rel=\"noopener\">Whisper</a> (OpenAI, via whisper.cpp) models. The app itself recognizes speech entirely locally, without sending audio anywhere.",
+      "meta.title": "Dikta — local dictation in Russian and English",
+      "meta.description": "Dikta is a desktop app for voice input. Hybrid speech recognition (GigaAM from Sber and Whisper via GPU-accelerated whisper.cpp) runs entirely on your machine, no cloud, no subscription."
+    }
+  };
+
+  var PHRASES = {
+    ru: [
+      "у лукоморья дуб зелёный",
+      "встреча перенесена на пятницу",
+      "запиши это в заметки",
+      "спасибо, всё получил",
+    ],
+    en: [
+      "the quick brown fox jumps",
+      "let's move the meeting to friday",
+      "add this to my notes",
+      "thanks, got it",
+    ],
+  };
+
+  var currentLang = localStorage.getItem("dikta_site_lang") || "ru";
+  if (currentLang !== "ru" && currentLang !== "en") currentLang = "ru";
+
+  function t(key) {
+    return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key])
+      || TRANSLATIONS.ru[key]
+      || key;
+  }
+
+  function applyStaticI18n() {
+    document.documentElement.lang = currentLang;
+    document.title = t("meta.title");
+    var metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute("content", t("meta.description"));
+
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      var val = t(key);
+      // footer.text содержит ссылки — вставляем как разметку, остальное текстом.
+      if (key === "footer.text") {
+        el.innerHTML = val;
+      } else {
+        el.textContent = val;
+      }
+    });
+
+    var toggle = document.getElementById("lang-toggle");
+    if (toggle) toggle.textContent = currentLang.toUpperCase();
+  }
+
+  function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem("dikta_site_lang", lang);
+    applyStaticI18n();
+  }
+
+  var toggleBtn = document.getElementById("lang-toggle");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", function () {
+      setLanguage(currentLang === "ru" ? "en" : "ru");
+    });
+  }
+
+  applyStaticI18n();
+
+  // ---------- Живая пилюля с примером диктовки ----------
+  var el = document.getElementById("demo-text");
+  var phraseIndex = 0;
 
   function typeText(text, onDone) {
-    let i = 0;
+    var i = 0;
     el.textContent = "";
-    const caret = document.createElement("span");
+    var caret = document.createElement("span");
     caret.className = "caret";
     el.appendChild(document.createTextNode(""));
     el.appendChild(caret);
-    const interval = setInterval(() => {
+    var interval = setInterval(function () {
       i++;
       el.childNodes[0].textContent = text.slice(0, i);
       if (i >= text.length) {
@@ -514,9 +754,9 @@
   }
 
   function eraseText(onDone) {
-    const full = el.childNodes[0].textContent;
-    let i = full.length;
-    const interval = setInterval(() => {
+    var full = el.childNodes[0].textContent;
+    var i = full.length;
+    var interval = setInterval(function () {
       i--;
       el.childNodes[0].textContent = full.slice(0, Math.max(0, i));
       if (i <= 0) {
@@ -527,8 +767,9 @@
   }
 
   function loop() {
-    typeText(phrases[phraseIndex % phrases.length], () => {
-      eraseText(() => {
+    var phrases = PHRASES[currentLang] || PHRASES.ru;
+    typeText(phrases[phraseIndex % phrases.length], function () {
+      eraseText(function () {
         phraseIndex++;
         setTimeout(loop, 300);
       });
@@ -537,9 +778,11 @@
   loop();
 
   // Заполните ссылку на репозиторий, когда опубликуете его на GitHub.
-  const repoUrl = "https://github.com/impelixx/dikta";
+  var repoUrl = "https://github.com/impelixx/dikta";
   if (repoUrl) {
-    document.querySelectorAll("#repo-link, #repo-link-2").forEach((a) => (a.href = repoUrl));
+    document.querySelectorAll("#repo-link, #repo-link-2").forEach(function (a) {
+      a.href = repoUrl;
+    });
   }
 </script>
 
