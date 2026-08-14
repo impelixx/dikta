@@ -36,11 +36,12 @@ jobs:
     env:
       # См. комментарий в release.yml — universal-apple-darwin сборка ggml
       # падает без явного deployment target (std::filesystem недоступен
-      # ниже 10.15 в дефолте для этой цели).
+      # ниже 10.15 в дефолте для этой цели); реально работает только
+      # CMAKE_OSX_DEPLOYMENT_TARGET (build.rs форвардит CMAKE_*-переменные
+      # напрямую в cmake как -D), просто MACOSX_DEPLOYMENT_TARGET CMake
+      # почему-то не подхватывает в этом сценарии.
       MACOSX_DEPLOYMENT_TARGET: "11.0"
-      # См. комментарий в release.yml — обходит отсутствие /dev/fuse в
-      # контейнерах GitHub Actions при сборке AppImage.
-      APPIMAGE_EXTRACT_AND_RUN: "1"
+      CMAKE_OSX_DEPLOYMENT_TARGET: "11.0"
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +54,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          prefix-key: "v2-macos-deploytarget-fix"
           # См. комментарий в ci.yml — sherpa-rs-sys кэширует бинарники вне
           # target/, rust-cache должен кэшировать их тоже, иначе линковка
           # падает на восстановленном (не свежем) кэше.
@@ -72,7 +72,7 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libxdo-dev libfuse2
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libxdo-dev
 
       - name: npm ci
         run: npm ci

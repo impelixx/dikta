@@ -31,12 +31,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          # prefix-key разово меняет ключ кэша, чтобы этот прогон гарантированно
-          # пересобрал sherpa-rs-sys с нуля и заполнил оба кэша (target/ и
-          # cache-directories ниже) синхронно — иначе восстановился бы старый
-          # "испорченный" target/ с fingerprint, будто библиотеки уже на месте,
-          # при пустом ещё cache-directories. Можно убрать после одного зелёного прогона.
-          prefix-key: "v2-macos-deploytarget-fix"
           # sherpa-rs-sys скачивает готовые библиотеки sherpa-onnx/onnxruntime
           # не в target/, а в системный кэш (dirs::cache_dir()/"sherpa-rs").
           # rust-cache кэширует только target/ — без этого при восстановлении

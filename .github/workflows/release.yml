@@ -33,13 +33,13 @@ jobs:
       # а SDK помечает его недоступным ниже 10.15, если таргет не задан явно
       # (обычный однoархитектурный `cargo build` в ci.yml этого не ловит —
       # там свой дефолт от тулчейна, тут — из-за universal x86_64+aarch64).
+      # MACOSX_DEPLOYMENT_TARGET сам по себе не сработал (CMake его почему-то
+      # игнорирует при принудительно заданном CMAKE_OSX_ARCHITECTURES) —
+      # build.rs крейта whisper-rs-sys явно форвардит в cmake любую
+      # переменную окружения с префиксом CMAKE_ как -D<имя>=<значение>,
+      # так что реально работает только CMAKE_OSX_DEPLOYMENT_TARGET.
       MACOSX_DEPLOYMENT_TARGET: "11.0"
-      # linuxdeploy (собирает AppImage) сам является AppImage и пытается
-      # смонтировать себя через FUSE — в контейнерах GitHub Actions ubuntu-
-      # latest даже с libfuse2t64 нет доступа к /dev/fuse. extract-and-run
-      # обходит монтирование, распаковывая AppImage во временную папку.
-      # На Windows/macOS переменная просто не используется, не мешает.
-      APPIMAGE_EXTRACT_AND_RUN: "1"
+      CMAKE_OSX_DEPLOYMENT_TARGET: "11.0"
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +52,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          prefix-key: "v2-macos-deploytarget-fix"
           # См. комментарий в ci.yml — sherpa-rs-sys кэширует бинарники вне
           # target/, rust-cache должен кэшировать их тоже, иначе линковка
           # падает на восстановленном (не свежем) кэше.
@@ -71,7 +70,7 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libxdo-dev libfuse2
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libxdo-dev
 
       - name: npm ci
         run: npm ci
