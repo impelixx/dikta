@@ -40,6 +40,11 @@
       "icons/icon.ico"
     ],
     "macOS": {
+      "frameworks": [
+        "Frameworks/libonnxruntime.1.17.1.dylib",
+        "Frameworks/libsherpa-onnx-c-api.dylib",
+        "Frameworks/libsherpa-onnx-cxx-api.dylib"
+      ],
       "dmg": {
         "windowSize": { "width": 540, "height": 380 },
         "appPosition": { "x": 140, "y": 190 },

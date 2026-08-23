@@ -15,6 +15,10 @@ dist-ssr
 # Rust build output
 /src-tauri/target
 
+# Dylib'ы ASR-бэкенда, стейджатся из target/ перед бандлингом macOS-приложения
+# (см. tauri.conf.json bundle.macOS.frameworks)
+/src-tauri/Frameworks
+
 # Служебные каталоги Claude Code / OMC
 .claude
 .omc

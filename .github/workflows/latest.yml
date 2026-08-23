@@ -77,6 +77,19 @@ jobs:
       - name: npm ci
         run: npm ci
 
+      - name: Подготовить Frameworks для macOS-бандла
+        # См. комментарий в release.yml — Tauri не копирует dylib'ы ASR-бэкенда
+        # в .app сам, без этого шага dyld не находит их при запуске и macOS
+        # показывает "dikta cannot be opened because of a problem".
+        if: matrix.platform == 'macos-latest'
+        working-directory: src-tauri
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          mkdir -p Frameworks
+          cp -L target/aarch64-apple-darwin/release/libonnxruntime.1.17.1.dylib Frameworks/
+          cp -L target/aarch64-apple-darwin/release/libsherpa-onnx-c-api.dylib Frameworks/
+          cp -L target/aarch64-apple-darwin/release/libsherpa-onnx-cxx-api.dylib Frameworks/
+
       - name: Собрать и обновить пререлиз latest
         uses: tauri-apps/tauri-action@v1
         env:
