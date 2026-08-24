@@ -30,13 +30,44 @@
 
   html { scroll-behavior: smooth; }
 
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
   body {
     margin: 0;
-    background: var(--cream);
+    background:
+      radial-gradient(1100px 480px at 50% -120px, rgba(201,121,95,0.10), transparent 60%),
+      var(--cream);
     color: var(--ink);
     font-family: var(--font-serif);
     -webkit-font-smoothing: antialiased;
     line-height: 1.55;
+    position: relative;
+  }
+
+  /* Тонкое зерно поверх крема — ощущение бумаги, не плоский заливной фон. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+
+  header.nav, main, section, footer { position: relative; z-index: 1; }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.in {
+    opacity: 1;
+    transform: none;
   }
 
   a { color: inherit; }
@@ -82,6 +113,21 @@
     font-family: var(--font-serif);
     font-weight: 600;
   }
+  .version-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--terracotta-deep);
+    background: rgba(201, 121, 95, 0.12);
+    border: 1px solid rgba(201, 121, 95, 0.25);
+    border-radius: 999px;
+    padding: 3px 9px;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .version-badge:hover { background: rgba(201, 121, 95, 0.2); }
+  .version-badge.is-hidden { display: none; }
   nav.links {
     display: flex;
     gap: 26px;
@@ -117,6 +163,47 @@
     color: var(--ink);
   }
   .btn-ghost:hover { border-color: var(--terracotta); color: var(--terracotta-deep); }
+  .btn-lg { padding: 15px 30px; font-size: 15px; }
+  .btn[aria-disabled="true"] { opacity: 0.55; pointer-events: none; }
+
+  /* ---------- Платформенные кнопки скачивания ---------- */
+  .platform-picks {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .platform-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .platform-pick:hover {
+    border-color: var(--terracotta);
+    color: var(--terracotta-deep);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(54,43,33,0.08);
+  }
+  .platform-pick svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .platform-pick .plat-sub { color: var(--ink-soft); font-size: 11px; }
+  .platform-pick.is-detected {
+    border-color: var(--terracotta);
+    background: rgba(201, 121, 95, 0.08);
+  }
+  .final-cta .platform-pick { background: rgba(246,238,226,0.06); border-color: rgba(244,234,217,0.22); color: var(--cream); }
+  .final-cta .platform-pick .plat-sub { color: rgba(244,234,217,0.55); }
+  .final-cta .platform-pick:hover { border-color: var(--terracotta); color: var(--cream); background: rgba(201,121,95,0.18); }
+  .final-cta .platform-pick.is-detected { border-color: var(--terracotta); background: rgba(201,121,95,0.16); }
 
   #lang-toggle {
     display: inline-flex;
@@ -173,7 +260,74 @@
     margin-top: 14px;
   }
 
-  /* ---------- Signature: живая пилюля ---------- */
+  /* ---------- Stat strip ---------- */
+  .stat-strip {
+    display: flex;
+    justify-content: center;
+    gap: 36px;
+    flex-wrap: wrap;
+    margin: 0 0 60px;
+    font-family: var(--font-mono);
+  }
+  .stat-strip .stat { text-align: center; }
+  .stat-strip .stat .num {
+    display: block;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--terracotta-deep);
+    letter-spacing: -0.01em;
+  }
+  .stat-strip .stat .label {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+
+  /* ---------- Signature: мокап рабочего стола с живой пилюлей ---------- */
+  .desktop-mockup {
+    position: relative;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 46px 20px 34px;
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 40%),
+      linear-gradient(135deg, var(--cream-2) 0%, var(--cream) 60%);
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(54,43,33,0.05), 0 30px 60px -20px rgba(54,43,33,0.18);
+    overflow: hidden;
+  }
+  .desktop-mockup .menubar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 30px;
+    background: rgba(61, 50, 38, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 16px;
+    gap: 10px;
+  }
+  .desktop-mockup .menubar .tray-icon {
+    width: 15px; height: 15px;
+    border-radius: 4px;
+    background: var(--terracotta);
+    opacity: 0.95;
+  }
+  .desktop-mockup .menubar .dot-group { display: flex; gap: 5px; margin-right: auto; }
+  .desktop-mockup .menubar .dot-group span {
+    width: 9px; height: 9px; border-radius: 50%; background: rgba(246,238,226,0.28);
+  }
+  .desktop-mockup .caption {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 22px;
+    letter-spacing: 0.01em;
+  }
   .pill-demo {
     display: inline-flex;
     align-items: center;
@@ -242,6 +396,12 @@
     border-radius: 16px;
     padding: 26px 24px;
     box-shadow: 0 1px 2px rgba(54,43,33,0.06), 0 10px 26px rgba(54,43,33,0.07);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--terracotta-dim);
+    box-shadow: 0 1px 2px rgba(54,43,33,0.06), 0 18px 34px rgba(54,43,33,0.11);
   }
   .card .icon {
     width: 38px;
@@ -329,12 +489,17 @@
 
   /* ---------- Footer / CTA ---------- */
   .final-cta {
+    position: relative;
     text-align: center;
-    background: var(--ink);
+    background:
+      radial-gradient(600px 260px at 50% -60px, rgba(201,121,95,0.28), transparent 70%),
+      var(--ink);
     color: var(--cream);
     border-radius: 24px;
     padding: 64px 40px;
     margin: 24px 0 72px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px -30px rgba(24,18,12,0.45);
   }
   .final-cta h2 { color: var(--cream); }
   .final-cta p { color: rgba(244,234,217,0.75); max-width: 460px; margin: 0 auto 32px; }
@@ -358,6 +523,8 @@
     .model-row.head { display: none; }
     .cta-row { flex-direction: column; align-items: center; }
     nav.links { display: none; }
+    .stat-strip { gap: 22px; }
+    .version-badge { display: none; }
   }
 </style>
 </head>
@@ -365,7 +532,10 @@
 
 <header class="nav">
   <div class="wrap">
-    <div class="brand"><span class="mark">Д</span> Дикта</div>
+    <div class="brand">
+      <span class="mark">Д</span> Дикта
+      <a class="version-badge is-hidden" id="version-badge" href="#" target="_blank" rel="noopener"></a>
+    </div>
     <nav class="links">
       <a href="#features" data-i18n="nav.features">Возможности</a>
       <a href="#how" data-i18n="nav.how">Как это работает</a>
@@ -386,13 +556,30 @@
     и без подписки. Распознавание работает целиком на вашем компьютере.
   </p>
   <div class="cta-row">
-    <a class="btn btn-primary" href="#download" id="download-btn-hero" data-i18n="hero.cta.download">Скачать</a>
+    <a class="btn btn-primary btn-lg" href="#" id="download-btn-hero">
+      <span id="download-btn-hero-label" data-i18n="hero.cta.download">Скачать</span>
+    </a>
     <a class="btn btn-ghost" href="#" id="repo-link" data-i18n="hero.cta.repo">Исходный код на GitHub</a>
   </div>
+  <p class="download-hint" id="download-hint-hero"></p>
 
-  <div class="pill-demo">
-    <div class="dot"></div>
-    <span id="demo-text"></span>
+  <div class="stat-strip">
+    <div class="stat"><span class="num">100%</span><span class="label" data-i18n="stat.offline">офлайн</span></div>
+    <div class="stat"><span class="num">11</span><span class="label" data-i18n="stat.models">моделей</span></div>
+    <div class="stat"><span class="num">0 ₽</span><span class="label" data-i18n="stat.price">без подписки</span></div>
+    <div class="stat"><span class="num">MIT</span><span class="label" data-i18n="stat.license">открытый код</span></div>
+  </div>
+
+  <div class="desktop-mockup">
+    <div class="menubar">
+      <div class="dot-group"><span></span><span></span><span></span></div>
+      <div class="tray-icon"></div>
+    </div>
+    <div class="pill-demo">
+      <div class="dot"></div>
+      <span id="demo-text"></span>
+    </div>
+    <div class="caption" data-i18n="hero.mockup.caption">Плавающая подсказка поверх любого приложения — не занимает Dock и панель задач</div>
   </div>
 </section>
 
@@ -533,10 +720,27 @@
       <h2 data-i18n="download.h2">Попробуйте на своих словах</h2>
       <p data-i18n="download.p">Дикта — открытый проект. Соберите его сами или возьмите готовую сборку из релизов на GitHub.</p>
       <div class="cta-row">
-        <a class="btn btn-primary" href="#" id="download-btn-main" data-i18n="download.cta">Скачать последний релиз</a>
+        <a class="btn btn-primary btn-lg" href="#" id="download-btn-main">
+          <span id="download-btn-main-label" data-i18n="download.cta">Скачать последний релиз</span>
+        </a>
         <a class="btn btn-ghost" href="#" id="repo-link-2" data-i18n="download.repo">Открыть репозиторий</a>
       </div>
       <p class="download-hint" id="download-hint" data-i18n="download.hint"></p>
+
+      <div class="platform-picks" id="platform-picks">
+        <a class="platform-pick" id="pick-mac" href="#" aria-disabled="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.463 2.101-1.14 2.815-.744.79-1.965 1.395-2.965 1.31-.13-1.1.44-2.24 1.13-2.95.75-.79 2.04-1.37 2.975-1.175zM20.35 17.02c-.395.9-.58 1.3-1.08 2.09-.7 1.1-1.68 2.47-2.9 2.48-1.08.01-1.36-.7-2.83-.69-1.47.01-1.78.7-2.86.69-1.22-.01-2.15-1.25-2.85-2.35-1.95-3.06-2.16-6.66-.95-8.57.86-1.36 2.22-2.15 3.5-2.15 1.3 0 2.12.72 3.2.72 1.05 0 1.68-.72 3.2-.72 1.14 0 2.34.62 3.2 1.7-2.81 1.54-2.35 5.55.35 6.79z"/></svg>
+          <span>macOS <span class="plat-sub" id="pick-mac-sub"></span></span>
+        </a>
+        <a class="platform-pick" id="pick-win" href="#" aria-disabled="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5l7.4-1v7.1H3V5.5zm8.4-1.14L21 3v9.1H11.4V4.36zM3 12.6h7.4v7.1L3 18.66V12.6zm8.4 0H21V21l-9.6-1.34V12.6z"/></svg>
+          <span>Windows <span class="plat-sub" id="pick-win-sub"></span></span>
+        </a>
+        <a class="platform-pick" id="pick-linux" href="#" aria-disabled="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1.5 0 2.6 1.36 2.6 3.14 0 1.02-.34 1.66-.34 2.6 0 .5.1.9.34 1.4.5 1 1.9 2.1 1.9 4.06 0 1.36-.7 2.3-.7 3.1 0 .5.2.9.2 1.4 0 1.1-1.1 1.6-2.2 1.6-.8 0-1.3-.3-2-.3-.7 0-1.2.3-2 .3-1.1 0-2.2-.5-2.2-1.6 0-.5.2-.9.2-1.4 0-.8-.7-1.74-.7-3.1 0-1.96 1.4-3.06 1.9-4.06.24-.5.34-.9.34-1.4 0-.94-.34-1.58-.34-2.6C9.4 3.36 10.5 2 12 2z"/></svg>
+          <span>Linux <span class="plat-sub" id="pick-linux-sub"></span></span>
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -560,7 +764,16 @@
       "hero.line2": "Печатает Дикта.",
       "hero.subhead": "Голосовой ввод прямо в любом приложении — по хоткею, без интернета и без подписки. Распознавание работает целиком на вашем компьютере.",
       "hero.cta.download": "Скачать",
+      "hero.cta.download.for": "Скачать для",
       "hero.cta.repo": "Исходный код на GitHub",
+      "hero.mockup.caption": "Плавающая подсказка поверх любого приложения — не занимает Dock и панель задач",
+      "stat.offline": "офлайн",
+      "stat.models": "моделей",
+      "stat.price": "без подписки",
+      "stat.license": "открытый код",
+      "download.hint.detecting": "Определяем вашу систему и подбираем нужный файл…",
+      "download.hint.ready": "Определили вашу систему — выбран нужный файл",
+      "download.hint.none": "Релизов пока нет — загляните в репозиторий",
       "features.eyebrow": "Возможности",
       "features.h2": "Всё, что нужно для диктовки — и ничего лишнего",
       "features.p": "Каждая функция здесь потому, что ей реально пользуются во время работы, а не потому что «так принято».",
@@ -628,7 +841,16 @@
       "hero.line2": "Dikta types it.",
       "hero.subhead": "Voice input in any app — one hotkey, no internet, no subscription. Recognition runs entirely on your machine.",
       "hero.cta.download": "Download",
+      "hero.cta.download.for": "Download for",
       "hero.cta.repo": "Source code on GitHub",
+      "hero.mockup.caption": "A floating hint on top of any app — no Dock or taskbar clutter",
+      "stat.offline": "offline",
+      "stat.models": "models",
+      "stat.price": "no subscription",
+      "stat.license": "open source",
+      "download.hint.detecting": "Detecting your system and picking the right file…",
+      "download.hint.ready": "Detected your system — picked the right file",
+      "download.hint.none": "No releases yet — check the repository",
       "features.eyebrow": "Features",
       "features.h2": "Everything you need for dictation — nothing you don't",
       "features.p": "Every feature here earns its place because people actually use it, not because it's expected.",
@@ -733,10 +955,17 @@
     if (toggle) toggle.textContent = currentLang.toUpperCase();
   }
 
+  // Переопределяется ниже, после резолва релиза — переводит подписи кнопок
+  // скачивания ("Скачать для macOS" и подсказку с версией), которые не
+  // покрыты общей applyStaticI18n(), потому что зависят от данных с GitHub,
+  // а не только от языка.
+  var refreshDownloadLabels = function () {};
+
   function setLanguage(lang) {
     currentLang = lang;
     localStorage.setItem("dikta_site_lang", lang);
     applyStaticI18n();
+    refreshDownloadLabels();
   }
 
   var toggleBtn = document.getElementById("lang-toggle");
@@ -805,18 +1034,42 @@
   // никогда не попадёт "плавающий" latest-билд с каждого коммита в main —
   // только настоящий версионный релиз.
   (function () {
-    var downloadBtns = document.querySelectorAll("#download-btn-hero, #download-btn-main");
+    var heroBtn = document.getElementById("download-btn-hero");
+    var heroLabel = document.getElementById("download-btn-hero-label");
+    var mainBtn = document.getElementById("download-btn-main");
+    var mainLabel = document.getElementById("download-btn-main-label");
+    var heroHint = document.getElementById("download-hint-hero");
+    var mainHint = document.getElementById("download-hint");
+    var versionBadge = document.getElementById("version-badge");
     var releasesUrl = repoUrl + "/releases";
-    downloadBtns.forEach(function (a) {
-      a.href = releasesUrl;
-    });
 
-    function platformExtensions() {
+    [heroBtn, mainBtn].forEach(function (a) { a.href = releasesUrl; });
+    if (heroHint) heroHint.textContent = t("download.hint.detecting");
+
+    // Порядок расширений внутри каждой платформы — от предпочитаемого к запасному.
+    var PLATFORMS = {
+      mac: { exts: ["dmg"], label: "macOS" },
+      win: { exts: ["msi", "exe"], label: "Windows" },
+      linux: { exts: ["appimage", "deb", "rpm"], label: "Linux" }
+    };
+
+    function detectPlatform() {
       var raw = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent;
       var p = raw.toLowerCase();
-      if (p.indexOf("mac") !== -1) return ["dmg"];
-      if (p.indexOf("win") !== -1) return ["msi", "exe"];
-      return ["appimage", "deb"];
+      if (p.indexOf("mac") !== -1) return "mac";
+      if (p.indexOf("win") !== -1) return "win";
+      return "linux";
+    }
+
+    function findAsset(assets, exts) {
+      for (var i = 0; i < exts.length; i++) {
+        var match = assets.filter(function (a) {
+          var name = a.name.toLowerCase();
+          return name.indexOf("." + exts[i]) === name.length - exts[i].length - 1;
+        })[0];
+        if (match) return match;
+      }
+      return null;
     }
 
     fetch("https://api.github.com/repos/impelixx/dikta/releases/latest")
@@ -826,26 +1079,89 @@
       })
       .then(function (release) {
         var assets = release.assets || [];
-        var exts = platformExtensions();
-        var asset = null;
-        for (var i = 0; i < exts.length && !asset; i++) {
-          asset = assets.filter(function (a) {
-            return a.name.toLowerCase().indexOf("." + exts[i]) === a.name.length - exts[i].length - 1;
-          })[0];
+        var detected = detectPlatform();
+
+        if (versionBadge) {
+          versionBadge.textContent = release.tag_name;
+          versionBadge.href = release.html_url || releasesUrl;
+          versionBadge.classList.remove("is-hidden");
         }
-        var target = asset ? asset.browser_download_url : release.html_url || releasesUrl;
-        downloadBtns.forEach(function (a) {
-          a.href = target;
-          a.removeAttribute("target");
+
+        var primary = findAsset(assets, PLATFORMS[detected].exts);
+
+        // Языко-зависимые подписи вынесены в отдельную функцию и
+        // перевызываются при смене языка (см. setLanguage) — сами ссылки
+        // на файлы от языка не зависят и резолвятся только один раз здесь.
+        refreshDownloadLabels = function () {
+          var primaryLabel = t("hero.cta.download.for") + " " + PLATFORMS[detected].label;
+          if (primary) {
+            if (heroLabel) heroLabel.textContent = primaryLabel;
+            if (mainLabel) mainLabel.textContent = primaryLabel;
+            if (heroHint) heroHint.textContent = release.tag_name + " · " + primary.name;
+            if (mainHint) mainHint.textContent = t("download.hint.ready") + " (" + release.tag_name + ", " + primary.name + ")";
+          } else if (heroHint) {
+            heroHint.textContent = t("download.hint.none");
+          }
+        };
+
+        // Основные кнопки — сразу на файл под систему посетителя.
+        if (primary) {
+          [heroBtn, mainBtn].forEach(function (a) {
+            a.href = primary.browser_download_url;
+            a.removeAttribute("target");
+          });
+        }
+        refreshDownloadLabels();
+
+        // Плюс явные кнопки на все три платформы — чтобы можно было скачать
+        // не только "свою" систему, но и любую другую нужную сразу с сайта.
+        Object.keys(PLATFORMS).forEach(function (key) {
+          var el = document.getElementById("pick-" + key);
+          var sub = document.getElementById("pick-" + key + "-sub");
+          if (!el) return;
+          var asset = findAsset(assets, PLATFORMS[key].exts);
+          if (asset) {
+            el.href = asset.browser_download_url;
+            el.removeAttribute("aria-disabled");
+            if (sub) sub.textContent = "." + asset.name.split(".").pop();
+          } else {
+            el.href = releasesUrl;
+            el.removeAttribute("aria-disabled");
+          }
+          if (key === detected) el.classList.add("is-detected");
         });
-        var hint = document.getElementById("download-hint");
-        if (hint && asset) {
-          hint.textContent = hint.textContent + " (" + release.tag_name + ", " + asset.name + ")";
-        }
       })
       .catch(function () {
         // релизов ещё нет или GitHub API недоступен — просто остаёмся на /releases
+        refreshDownloadLabels = function () {
+          if (heroHint) heroHint.textContent = t("download.hint.none");
+        };
+        refreshDownloadLabels();
+        document.querySelectorAll(".platform-pick").forEach(function (el) {
+          el.href = releasesUrl;
+          el.removeAttribute("aria-disabled");
+        });
       });
+  })();
+
+  // ---------- Reveal on scroll ----------
+  (function () {
+    document.querySelectorAll(".card, .step, .model-table, .final-cta").forEach(function (el) {
+      el.classList.add("reveal");
+    });
+    if (!("IntersectionObserver" in window)) {
+      document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in");
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    document.querySelectorAll(".reveal").forEach(function (el) { io.observe(el); });
   })();
 </script>
 
