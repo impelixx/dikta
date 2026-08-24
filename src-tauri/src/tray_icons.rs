@@ -15,8 +15,19 @@ fn set_icon(app: &AppHandle, bytes: &[u8]) {
     }
 }
 
+/// Дёргает set_icon на главном потоке. На macOS NSStatusItem (за которым
+/// скрывается tray-иконка) — AppKit-объект, трогать его можно только с
+/// главного потока; вызов из фонового потока — undefined behavior и на
+/// практике падает с SIGABRT, особенно при частых конкурентных вызовах
+/// (например, если пользователь спамит toggle-хоткей без автостопа и
+/// несколько анимаций иконки успевают наложиться друг на друга).
+fn set_icon_on_main(app: &AppHandle, bytes: &'static [u8]) {
+    let app_for_closure = app.clone();
+    let _ = app.run_on_main_thread(move || set_icon(&app_for_closure, bytes));
+}
+
 pub fn set_idle(app: &AppHandle) {
-    set_icon(app, IDLE);
+    set_icon_on_main(app, IDLE);
 }
 
 /// Живая иконка трея, пока идёт запись — два кадра точки-индикатора,
@@ -25,7 +36,7 @@ pub fn animate_listening(app: AppHandle, still_active: impl Fn() -> bool + Send 
     std::thread::spawn(move || {
         let mut frame = false;
         while still_active() {
-            set_icon(&app, if frame { LISTEN_B } else { LISTEN_A });
+            set_icon_on_main(&app, if frame { LISTEN_B } else { LISTEN_A });
             frame = !frame;
             std::thread::sleep(std::time::Duration::from_millis(450));
         }
@@ -37,7 +48,7 @@ pub fn animate_processing(app: AppHandle, still_processing: impl Fn() -> bool + 
     std::thread::spawn(move || {
         let mut frame = false;
         while still_processing() {
-            set_icon(&app, if frame { PROCESS_B } else { PROCESS_A });
+            set_icon_on_main(&app, if frame { PROCESS_B } else { PROCESS_A });
             frame = !frame;
             std::thread::sleep(std::time::Duration::from_millis(350));
         }

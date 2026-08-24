@@ -989,11 +989,12 @@ dependencies = [
 
 [[package]]
 name = "dikta"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "anyhow",
  "bzip2",
  "chrono",
+ "core-foundation",
  "cpal",
  "dirs 5.0.1",
  "enigo",

@@ -1,6 +1,6 @@
 [package]
 name = "dikta"
-version = "0.1.2"
+version = "0.1.3"
 description = "Local offline voice dictation (GigaAM, Whisper) built with Tauri"
 authors = ["impelixx"]
 license = "MIT"
@@ -42,6 +42,7 @@ nnnoiseless = { version = "0.5.2", default-features = false }
 # базовым объявлением выше, отдельно объявлять зависимость второй раз не нужно.
 [target.'cfg(target_os = "macos")'.dependencies]
 whisper-rs = { version = "0.16", default-features = false, features = ["metal"] }
+core-foundation = "0.10"
 
 [dev-dependencies]
 hound = "3.5"

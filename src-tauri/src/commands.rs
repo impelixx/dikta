@@ -86,6 +86,16 @@ pub fn download_model(app: AppHandle, state: State<AppState>, id: String) -> Res
     });
     match result {
         Ok(()) => {
+            // Если активной модели ещё нет (типичный случай — самый первый
+            // запуск), сразу активируем только что скачанную, а не оставляем
+            // пользователя с "модель не выбрана" после того, как он явно
+            // скачал модель и логично ждёт, что ей можно сразу пользоваться.
+            let no_active_model = state.recognizer.lock().unwrap().is_none();
+            if no_active_model {
+                if let Err(e) = crate::activate_model(&app, &id) {
+                    eprintln!("[models] не удалось активировать {id} после скачивания: {e}");
+                }
+            }
             let _ = app.emit("model-download-done", id);
             let _ = crate::rebuild_tray_menu(&app);
             Ok(())

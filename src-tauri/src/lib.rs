@@ -207,6 +207,7 @@ pub fn run() {
                 AppSettings::load(&conn)
             };
 
+            let autopaste_enabled = settings.autopaste_enabled;
             let models_dir = models_base_dir();
             let recognizer = load_active_recognizer(&settings, &models_dir);
 
@@ -227,6 +228,14 @@ pub fn run() {
             });
 
             hotkeys::register_hotkeys(&handle)?;
+
+            // Просим систему показать диалог Accessibility-разрешения один раз
+            // на старте (не при каждой вставке — см. paste.rs), иначе без него
+            // приложение может даже не появиться в списке Privacy & Security →
+            // Accessibility, и автовставку будет физически неоткуда включить.
+            if autopaste_enabled {
+                paste::request_trust_prompt_if_needed();
+            }
 
             // Трей: минимальная точка доступа, приложение живёт в фоне без открытого окна.
             // Меню строится динамически (rebuild_tray_menu), тут — только заготовка.
