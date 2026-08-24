@@ -80,13 +80,20 @@ jobs:
         # в .app — их нужно заранее положить туда, куда указывает
         # bundle.macOS.frameworks в tauri.conf.json, иначе dyld не находит их
         # при запуске готового приложения ("dikta cannot be opened because of
-        # a problem"). Собираем один раз под aarch64 (sherpa-rs-sys раздаёт
-        # уже universal-бинарники onnxruntime/sherpa-onnx, так что arm64- и
-        # x86_64-сборки используют один и тот же dylib — лишний lipo не нужен).
+        # a problem"). Собираем ТОЛЬКО крейт sherpa-rs-sys (-p), а не весь
+        # dikta: build.rs пакета dikta вызывает tauri_build::build(), а тот
+        # сам проверяет на этапе компиляции, что файлы из frameworks уже
+        # существуют — сборка dikta до появления Frameworks/ падает. У
+        # sherpa-rs-sys свой независимый build.rs, который просто скачивает и
+        # копирует готовые дистрибутивы onnxruntime/sherpa-onnx в target/ —
+        # он не завязан на tauri_build и ничего не проверяет заранее.
+        # Собираем один раз под aarch64: sherpa-rs-sys раздаёт уже
+        # universal-бинарники, так что arm64- и x86_64-сборки используют один
+        # и тот же dylib — лишний lipo не нужен.
         if: matrix.platform == 'macos-latest'
         working-directory: src-tauri
         run: |
-          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin -p sherpa-rs-sys
           mkdir -p Frameworks
           cp -L target/aarch64-apple-darwin/release/libonnxruntime.1.17.1.dylib Frameworks/
           cp -L target/aarch64-apple-darwin/release/libsherpa-onnx-c-api.dylib Frameworks/

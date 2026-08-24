@@ -48,6 +48,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libxdo-dev
 
+      - name: Подготовить Frameworks для macOS-бандла
+        # tauri.conf.json объявляет bundle.macOS.frameworks (dylib'ы ASR-бэкенда,
+        # нужны для запуска собранного .app — см. release.yml). tauri_build::build()
+        # в build.rs пакета dikta проверяет на этапе компиляции, что эти файлы
+        # уже лежат в src-tauri/Frameworks — иначе сборка dikta падает с
+        # "Library not found". Собираем ТОЛЬКО -p sherpa-rs-sys (не dikta), у
+        # него независимый build.rs, который просто копирует готовые
+        # onnxruntime/sherpa-onnx в target/, ничего не проверяя заранее.
+        if: matrix.platform == 'macos-latest'
+        working-directory: src-tauri
+        run: |
+          cargo build --release -p sherpa-rs-sys
+          mkdir -p Frameworks
+          cp -L target/release/libonnxruntime.1.17.1.dylib Frameworks/
+          cp -L target/release/libsherpa-onnx-c-api.dylib Frameworks/
+          cp -L target/release/libsherpa-onnx-cxx-api.dylib Frameworks/
+
       - name: cargo build
         working-directory: src-tauri
         run: cargo build --locked

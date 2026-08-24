@@ -80,11 +80,15 @@ jobs:
       - name: Подготовить Frameworks для macOS-бандла
         # См. комментарий в release.yml — Tauri не копирует dylib'ы ASR-бэкенда
         # в .app сам, без этого шага dyld не находит их при запуске и macOS
-        # показывает "dikta cannot be opened because of a problem".
+        # показывает "dikta cannot be opened because of a problem". Собираем
+        # ТОЛЬКО -p sherpa-rs-sys (не весь dikta) — у dikta build.rs зовёт
+        # tauri_build::build(), которая падает, если Frameworks/ ещё не
+        # существует; у sherpa-rs-sys независимый build.rs, просто копирующий
+        # готовые onnxruntime/sherpa-onnx в target/.
         if: matrix.platform == 'macos-latest'
         working-directory: src-tauri
         run: |
-          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin -p sherpa-rs-sys
           mkdir -p Frameworks
           cp -L target/aarch64-apple-darwin/release/libonnxruntime.1.17.1.dylib Frameworks/
           cp -L target/aarch64-apple-darwin/release/libsherpa-onnx-c-api.dylib Frameworks/

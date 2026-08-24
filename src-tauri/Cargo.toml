@@ -1,6 +1,6 @@
 [package]
 name = "dikta"
-version = "0.1.0"
+version = "0.1.1"
 description = "Local offline voice dictation (GigaAM, Whisper) built with Tauri"
 authors = ["impelixx"]
 license = "MIT"
