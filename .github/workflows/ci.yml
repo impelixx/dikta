@@ -76,6 +76,17 @@ jobs:
           cp -L target/release/libsherpa-onnx-c-api.dylib Frameworks/
           cp -L target/release/libsherpa-onnx-cxx-api.dylib Frameworks/
 
+          # Ниже cargo build/test используют debug-профиль (без --release) —
+          # тот же частичный-кэш-рестор может точно так же затронуть debug-
+          # артефакты sherpa-rs-sys отдельно от release. Проверяем и его —
+          # иначе test-бинарник падает на "Library not loaded" уже на debug.
+          cargo build -p sherpa-rs-sys
+          if [ ! -f target/debug/libonnxruntime.1.17.1.dylib ]; then
+            echo "dylib отсутствует после кэшированной debug-сборки — форсируем пересборку sherpa-rs-sys"
+            cargo clean -p sherpa-rs-sys
+            cargo build -p sherpa-rs-sys
+          fi
+
       - name: cargo build
         working-directory: src-tauri
         run: cargo build --locked
