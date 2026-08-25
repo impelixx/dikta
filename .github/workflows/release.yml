@@ -94,6 +94,17 @@ jobs:
         working-directory: src-tauri
         run: |
           cargo build --release --target aarch64-apple-darwin -p sherpa-rs-sys
+          # rust-cache иногда восстанавливает target/ частичным совпадением
+          # ("full match: false") — Cargo видит валидный fingerprint и не
+          # перезапускает build.rs, а сам скачанный dylib из этого частичного
+          # снапшота на деле отсутствует (копирование файла внутри build.rs
+          # не отслеживается fingerprint'ом). Если файла нет — форсируем
+          # пересборку именно этого крейта.
+          if [ ! -f target/aarch64-apple-darwin/release/libonnxruntime.1.17.1.dylib ]; then
+            echo "dylib отсутствует после кэшированной сборки — форсируем пересборку sherpa-rs-sys"
+            cargo clean --release --target aarch64-apple-darwin -p sherpa-rs-sys
+            cargo build --release --target aarch64-apple-darwin -p sherpa-rs-sys
+          fi
           mkdir -p Frameworks
           cp -L target/aarch64-apple-darwin/release/libonnxruntime.1.17.1.dylib Frameworks/
           cp -L target/aarch64-apple-darwin/release/libsherpa-onnx-c-api.dylib Frameworks/
